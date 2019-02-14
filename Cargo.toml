@@ -2,6 +2,10 @@
 name = "ndarray-vision"
 version = "0.1.0"
 authors = ["xd009642 <danielmckenna93@gmail.com>"]
+license = "MIT/Apache-2.0"
+description = "A computer vision library built on top of ndarray"
+keywords = ["image", "vision", "image-processing"]
+categories = ["Science", "Multimedia"]
 edition = "2018"
 
 [dependencies]
