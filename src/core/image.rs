@@ -49,6 +49,10 @@ where
     pub fn conv_inplace(&mut self, kernel: ArrayView3<T>) {
         self.data = conv(self.data.view(), kernel);
     }
+
+    pub fn pixel_format(&self) -> PixelFormat {
+        self.format
+    }
 }
 
 /// Implements a simple image convolution given a image and kernel
