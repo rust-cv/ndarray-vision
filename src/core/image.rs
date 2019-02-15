@@ -1,12 +1,11 @@
 use crate::core::formats::PixelFormat;
-use ndarray::{ArrayView, ArrayView3, ArrayViewMut, Array3, Axis, Ix1, s, Zip};
-use num_traits::{Zero, One};
-use core::ops::{Mul, Add, Sub};
+use core::ops::{Add, Mul, Sub};
+use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
+use num_traits::{One, Zero};
 
-
-/// Basic structure containing an image. 
+/// Basic structure containing an image.
 pub struct Image<T> {
-    /// Images are always going to be 3D to handle rows, columns and colour 
+    /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
     ///
     /// This should allow for max compatibility with maths ops in ndarray
@@ -15,7 +14,10 @@ pub struct Image<T> {
     format: PixelFormat,
 }
 
-impl<T> Image<T> where T: One + Zero + Clone + Mul + Add + Sub {
+impl<T> Image<T>
+where
+    T: One + Zero + Clone + Mul + Add + Sub,
+{
     pub fn new(rows: usize, columns: usize, format: PixelFormat) -> Self {
         Image {
             data: Array3::<T>::zeros((rows, columns, format.channels())),
@@ -34,7 +36,7 @@ impl<T> Image<T> where T: One + Zero + Clone + Mul + Add + Sub {
     pub fn conv(&self, kernel: ArrayView3<T>) -> Image<T> {
         Image {
             data: conv(self.data.view(), kernel),
-            format: self.format
+            format: self.format,
         }
     }
 
@@ -43,20 +45,22 @@ impl<T> Image<T> where T: One + Zero + Clone + Mul + Add + Sub {
     }
 }
 
-
-pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T> 
-where T: Clone + Zero + Mul<T, Output=T> {
+pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
+where
+    T: Clone + Zero + Mul<T, Output = T>,
+{
     let mut result = Array3::<T>::zeros(image.dim());
     let k_s = kernel.shape();
-    let row_offset = k_s[0]/2;
-    let col_offset = k_s[1]/2;
+    let row_offset = k_s[0] / 2;
+    let col_offset = k_s[1] / 2;
 
-    Zip::indexed(image.windows(kernel.dim()))
-        .apply(|(i, j, _), window| {
-            let mult =  &window * &kernel;
-            let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
-            result.slice_mut(s![i+row_offset, j+col_offset, ..]).assign(&sums);
-        });
+    Zip::indexed(image.windows(kernel.dim())).apply(|(i, j, _), window| {
+        let mult = &window * &kernel;
+        let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
+        result
+            .slice_mut(s![i + row_offset, j + col_offset, ..])
+            .assign(&sums);
+    });
 
     result
 }

@@ -1,4 +1,3 @@
-
 /// Enum containing supported pixel formats for images. Storage type is
 /// determined by the Image container
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -23,13 +22,12 @@ pub enum PixelFormat {
     /// CIE 1976 L*a*b* colour space - recommended for characterisation of
     /// coloured surfaces and dyes
     CIELAB,
-    /// CIE 1976 L* U* V* colour space - recommended for characterisation of 
+    /// CIE 1976 L* U* V* colour space - recommended for characterisation of
     /// colour displays
     CIELUV,
     /// Unspecified layout with the given number of channels
     Other(usize),
 }
-
 
 impl PixelFormat {
     /// Returns the number of channels used to represent the colour
@@ -39,7 +37,7 @@ impl PixelFormat {
             Gray => 1,
             RGB | HSV | HSI | HSL | YCrCb | CIELAB | CIEXYZ | CIELUV => 3,
             RGBA => 4,
-            Other(n) => *n
+            Other(n) => *n,
         }
     }
 }

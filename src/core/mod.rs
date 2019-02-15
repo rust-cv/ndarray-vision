@@ -1,7 +1,5 @@
-
-
-pub mod image;
 pub mod formats;
+pub mod image;
 
-pub use image::*;
 pub use formats::*;
+pub use image::*;
