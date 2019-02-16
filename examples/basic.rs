@@ -13,7 +13,7 @@ fn main() {
     // Set top left pixel to RGB 1.0, 0.0, 0.0
     image.pixel_mut(0, 0).assign(&arr1(&[255, 0, 0]));
 
-    let ppm = PpmFormat::plaintext_file();
+    let ppm = PpmFormat::new();
     let res = ppm.encode_file(&image, "test.ppm");
     println!("Save result {:?}", res);
     // Print pixel and image data to show change

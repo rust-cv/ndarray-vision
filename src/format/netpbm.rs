@@ -36,13 +36,35 @@ impl PpmFormat {
                 }).to_u8()
     }
 
+    fn generate_header(&self, rows: usize, cols: usize, max_value: u8) -> String {
+        match self.is_plaintext {
+            true => format!("P3\n{} {} {}\n", rows, cols, max_value),
+            false => format!("P6\n{} {} {}\n", rows, cols, max_value),
+        }
+    }
+
 
     fn encode_binary<T>(&self, image: &Image<T>) -> Vec<u8>
     where
-        T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd,
+        T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display,
     {
-        let max_val = Self::get_max_value(image);
-        unimplemented!()
+        let image = match image.colour_model() {
+            ColourModel::RGB => image,
+            _ => panic!("Colour conversions aren't yet supported"),
+        }; 
+        let max_val = Self::get_max_value(image).unwrap_or_else(|| 255);
+        
+        let mut result = self.generate_header(image.rows(), image.cols(), max_val).into_bytes();
+        // Not very accurate as a reserve, doesn't factor in max storage for
+        // a pixel or spaces. But somewhere between best and worst case
+        result.reserve(image.rows()*image.cols()*5);
+        
+        // There is a 70 character line length in PPM using another string to keep track 
+        for data in image.data.iter() {
+            let value = data.to_u8().unwrap_or_else(|| 0);
+            result.push(value);
+        }
+        result
     }
 
 
@@ -50,18 +72,16 @@ impl PpmFormat {
     where
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display,
     {
-        let mut result = String::from("P3 ");
-
         let image = match image.colour_model() {
             ColourModel::RGB => image,
             _ => panic!("Colour conversions aren't yet supported"),
         }; 
         let max_val = Self::get_max_value(image).unwrap_or_else(|| 255);
-
+        
+        let mut result = self.generate_header(image.rows(), image.cols(), max_val);
         // Not very accurate as a reserve, doesn't factor in max storage for
         // a pixel or spaces. But somewhere between best and worst case
         result.reserve(image.rows()*image.cols()*5);
-        result.push_str(&format!("\n{} {} {}\n", image.rows(), image.cols(), max_val));
         
         // There is a 70 character line length in PPM using another string to keep track 
         let mut temp = String::new();
