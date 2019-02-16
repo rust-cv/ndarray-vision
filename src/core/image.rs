@@ -1,6 +1,7 @@
-use crate::core::formats::PixelFormat;
+use crate::core::colour_models::*;
 use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
-use num_traits::{Num, NumAssignOps};
+use num_traits::{Num, NumAssignOps, cast::NumCast};
+use std::fmt::Display;
 
 /// Basic structure containing an image.
 pub struct Image<T> {
@@ -9,20 +10,20 @@ pub struct Image<T> {
     ///
     /// This should allow for max compatibility with maths ops in ndarray
     pub data: Array3<T>,
-    /// Pixel format stored internally
-    format: PixelFormat,
+    /// Representation of how colour is encoded in the image
+    model: ColourModel,
 }
 
 impl<T> Image<T>
 where
-    T: Clone + Num + NumAssignOps,
+    T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display,
 {
     //! Construct a new image filled with zeros using the given dimensions and
-    //! pixel format
-    pub fn new(rows: usize, columns: usize, format: PixelFormat) -> Self {
+    //! a colour model
+    pub fn new(rows: usize, columns: usize, model: ColourModel) -> Self {
         Image {
-            data: Array3::<T>::zeros((rows, columns, format.channels())),
-            format: format,
+            data: Array3::<T>::zeros((rows, columns, model.channels())),
+            model: model,
         }
     }
 
@@ -40,7 +41,7 @@ where
     pub fn conv(&self, kernel: ArrayView3<T>) -> Image<T> {
         Image {
             data: conv(self.data.view(), kernel),
-            format: self.format,
+            model: self.model,
         }
     }
 
@@ -48,9 +49,22 @@ where
     pub fn conv_inplace(&mut self, kernel: ArrayView3<T>) {
         self.data = conv(self.data.view(), kernel);
     }
+    
+    /// Returns the colour model used by the image
+    pub fn colour_model(&self) -> ColourModel {
+        self.model
+    }
 
-    pub fn pixel_format(&self) -> PixelFormat {
-        self.format
+    pub fn convert_model(&self, model: ColourModel) -> Image<T> {
+        unimplemented!()
+    }
+
+    pub fn rows(&self) -> usize {
+        self.data.shape()[0]
+    }
+
+    pub fn cols(&self) -> usize {
+        self.data.shape()[1]
     }
 }
 
@@ -58,7 +72,7 @@ where
 /// TODO Add an option to change kernel centre
 pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
 where
-    T: Clone + Num + NumAssignOps,
+    T: Copy + Clone + Num + NumAssignOps,
 {
     let mut result = Array3::<T>::zeros(image.dim());
     let k_s = kernel.shape();

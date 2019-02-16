@@ -1,7 +1,12 @@
+
+
+
 /// Enum containing supported pixel formats for images. Storage type is
 /// determined by the Image container
+/// TODO consider representing this with a struct tag instead. This would allow
+/// library users add other models more easily
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum PixelFormat {
+pub enum ColourModel {
     /// Single channel intensity image
     Gray,
     /// Red Green Blue image
@@ -29,10 +34,15 @@ pub enum PixelFormat {
     Other(usize),
 }
 
-impl PixelFormat {
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+pub enum ColourError {
+    InvalidDataDimensions
+}
+
+impl ColourModel {
     /// Returns the number of channels used to represent the colour
     pub fn channels(&self) -> usize {
-        use PixelFormat::*;
+        use ColourModel::*;
         match self {
             Gray => 1,
             RGB | HSV | HSI | HSL | YCrCb | CIELAB | CIEXYZ | CIELUV => 3,
