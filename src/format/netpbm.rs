@@ -1,5 +1,6 @@
 use crate::core::{Image, PixelFormat};
 use crate::format::{Decoder, Encoder};
+use num_traits::{Num, NumAssignOps};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 struct PpmFormat {
@@ -13,16 +14,25 @@ impl PpmFormat {
         }
     }
 
-    fn get_header_values<T>(image: &Image<T>) -> (usize, usize, u8) {
+    fn get_header_values<T>(image: &Image<T>) -> (usize, usize, u8)
+    where
+        T: Clone + Num + NumAssignOps,
+    {
         unimplemented!()
     }
 
-    fn encode_binary<T>(&self, image: &Image<T>) -> Vec<u8> {
+    fn encode_binary<T>(&self, image: &Image<T>) -> Vec<u8>
+    where
+        T: Clone + Num + NumAssignOps,
+    {
         let (rows, cols, max_val) = Self::get_header_values(image);
         unimplemented!()
     }
 
-    fn encode_plaintext<T>(&self, image: &Image<T>) -> Vec<u8> {
+    fn encode_plaintext<T>(&self, image: &Image<T>) -> Vec<u8>
+    where
+        T: Clone + Num + NumAssignOps,
+    {
         let (rows, cols, max_val) = Self::get_header_values(image);
         let image = match image.pixel_format() {
             PixelFormat::RGB => image,
@@ -32,7 +42,10 @@ impl PpmFormat {
     }
 }
 
-impl<T> Encoder<T> for PpmFormat {
+impl<T> Encoder<T> for PpmFormat
+where
+    T: Clone + Num + NumAssignOps,
+{
     fn encode(&self, image: &Image<T>) -> Vec<u8> {
         match self.is_plaintext {
             true => self.encode_plaintext(image),
@@ -41,7 +54,10 @@ impl<T> Encoder<T> for PpmFormat {
     }
 }
 
-impl<T> Decoder<T> for PpmFormat {
+impl<T> Decoder<T> for PpmFormat
+where
+    T: Clone + Num + NumAssignOps,
+{
     fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T>> {
         unimplemented!()
     }

@@ -1,7 +1,6 @@
 use crate::core::formats::PixelFormat;
-use core::ops::{Add, Mul, Sub};
 use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
-use num_traits::{One, Zero};
+use num_traits::{Num, NumAssignOps};
 
 /// Basic structure containing an image.
 pub struct Image<T> {
@@ -16,7 +15,7 @@ pub struct Image<T> {
 
 impl<T> Image<T>
 where
-    T: One + Zero + Clone + Mul + Add + Sub,
+    T: Clone + Num + NumAssignOps,
 {
     //! Construct a new image filled with zeros using the given dimensions and
     //! pixel format
@@ -59,7 +58,7 @@ where
 /// TODO Add an option to change kernel centre
 pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
 where
-    T: Clone + Zero + Mul<T, Output = T>,
+    T: Clone + Num + NumAssignOps,
 {
     let mut result = Array3::<T>::zeros(image.dim());
     let k_s = kernel.shape();

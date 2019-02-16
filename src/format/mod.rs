@@ -1,9 +1,13 @@
 use crate::core::Image;
+use num_traits::{Num, NumAssignOps};
 use std::fs::{read, File};
 use std::io::prelude::*;
 
 /// Trait for an image encoder
-pub trait Encoder<T> {
+pub trait Encoder<T>
+where
+    T: Clone + Num + NumAssignOps,
+{
     /// Encode an image into a sequence of bytes for the given format
     fn encode(&self, image: &Image<T>) -> Vec<u8>;
 
@@ -17,7 +21,10 @@ pub trait Encoder<T> {
 }
 
 /// Trait for an image decoder, use this to get an image from a byte stream
-pub trait Decoder<T> {
+pub trait Decoder<T>
+where
+    T: Clone + Num + NumAssignOps,
+{
     /// From the bytes decode an image, will perform any scaling or conversions
     /// required to represent elements with type T.
     fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T>>;
