@@ -1,4 +1,4 @@
-use crate::core::Image;
+use crate::core::*;
 use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{NumCast, FromPrimitive};
 use std::fmt::Display;
@@ -6,16 +6,17 @@ use std::fs::{read, File};
 use std::io::prelude::*;
 
 /// Trait for an image encoder
-pub trait Encoder<T>
+pub trait Encoder<T, C>
 where
     T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display,
+    C: ColourModel
 {
     /// Encode an image into a sequence of bytes for the given format
-    fn encode(&self, image: &Image<T>) -> Vec<u8>;
+    fn encode(&self, image: &Image<T, C>) -> Vec<u8>;
 
     /// Encode an image saving it to the file at filename. This function shouldn't
     /// add an extension preferring the user to do that instead.
-    fn encode_file(&self, image: &Image<T>, filename: &str) -> std::io::Result<()> {
+    fn encode_file(&self, image: &Image<T, C>, filename: &str) -> std::io::Result<()> {
         let mut file = File::create(filename)?;
         file.write_all(&self.encode(image))?;
         Ok(())
@@ -23,18 +24,19 @@ where
 }
 
 /// Trait for an image decoder, use this to get an image from a byte stream
-pub trait Decoder<T>
+pub trait Decoder<T, C>
 where
     T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display,
+    C: ColourModel
 {
     /// From the bytes decode an image, will perform any scaling or conversions
     /// required to represent elements with type T.
-    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T>>;
+    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T, C>>;
     /// Given a filename decode an image performing any necessary conversions.
-    fn decode_file(&self, filename: &str) -> std::io::Result<Image<T>> {
+    fn decode_file(&self, filename: &str) -> std::io::Result<Image<T, C>> {
         let bytes = read(filename)?;
         self.decode(&bytes)
     }
 }
 
-pub mod netpbm;
+//pub mod netpbm;
