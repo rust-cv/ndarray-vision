@@ -1,6 +1,3 @@
-
-
-
 /// Enum containing supported pixel formats for images. Storage type is
 /// determined by the Image container
 /// TODO consider representing this with a struct tag instead. This would allow
@@ -36,7 +33,7 @@ pub enum ColourModel {
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum ColourError {
-    InvalidDataDimensions
+    InvalidDataDimensions,
 }
 
 impl ColourModel {
