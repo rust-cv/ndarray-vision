@@ -5,6 +5,7 @@ use num_traits::cast::{NumCast, FromPrimitive};
 use std::fmt::Display;
 
 /// Basic structure containing an image.
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Image<T> {
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
@@ -67,13 +68,18 @@ where
 }
 
 impl <T>Image<T> {
-
+    /// Returns the number of rows in an image
     pub fn rows(&self) -> usize {
         self.data.shape()[0]
     }
-
+    /// Returns the number of channels in an image
     pub fn cols(&self) -> usize {
         self.data.shape()[1]
+    }
+
+    /// Convenience method to get number of channels
+    pub fn channels(&self) -> usize {
+        self.model.channels()
     }
 
     /// Returns the colour model used by the image
@@ -86,7 +92,6 @@ impl <T>Image<T> {
     pub fn force_model(&mut self, model: ColourModel) {
         self.model = model;
     }
-
 }
 
 
@@ -110,4 +115,19 @@ where
     });
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test] 
+    fn image_consistency_checks() {
+        let i = Image::<u8>::new(1, 2, ColourModel::RGB);
+        assert_eq!(i.rows(), 1);
+        assert_eq!(i.cols(), 2);
+        assert_eq!(i.channels(), 3);
+        assert_eq!(i.channels(), i.colour_model().channels());
+    }
+
 }

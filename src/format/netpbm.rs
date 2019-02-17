@@ -265,3 +265,50 @@ where
         }
     }
 }
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ndarray::arr1;
+
+    #[test]
+    fn max_value_test() {
+        let full_range = "P3 1 1 255 0 255 0";
+        let clamped = "P3 1 1 1 0 1 0";
+        
+        let decoder = PpmDecoder::default();
+        let full_image: Image<u8> = decoder.decode(full_range.as_bytes()).unwrap();
+        let clamp_image: Image<u8> = decoder.decode(clamped.as_bytes()).unwrap();
+
+        assert_eq!(full_image, clamp_image);
+        assert_eq!(full_image.pixel(0,0), arr1(&[0, 255, 0]));
+    }
+
+    #[test]
+    fn encoding_consistency() {
+        let image_str = "P3 
+            3 3 255 
+            255 255 255  0 0 0  255 0 0 
+            0 255 0  0 0 255  255 255 0
+            0 255 255  127 127 127  0 0 0";
+
+        let decoder = PpmDecoder::default();
+        let image: Image<u8> = decoder.decode(image_str.as_bytes()).unwrap();
+
+        let encoder = PpmEncoder::new();
+        let image_bytes = encoder.encode(&image);
+
+        let restored: Image<u8> = decoder.decode(&image_bytes).unwrap();
+
+        assert_eq!(image, restored);
+
+        let encoder = PpmEncoder::new_plaintext_encoder();
+        let image_bytes = encoder.encode(&image);
+        let restored: Image<u8> = decoder.decode(&image_bytes).unwrap();
+
+        assert_eq!(image, restored);
+    }
+}
