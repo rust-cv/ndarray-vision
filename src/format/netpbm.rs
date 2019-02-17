@@ -29,7 +29,7 @@ impl PpmEncoder {
 
     /// Creates a new PPM format to encode plain-text. This results in very large
     /// file sizes so isn't recommended in general use
-    pub fn plaintext_format() -> Self {
+    pub fn new_plaintext_encoder() -> Self {
         PpmEncoder {
             encoding: EncodingType::Plaintext,
         }
@@ -93,7 +93,7 @@ impl PpmEncoder {
             ColourModel::RGB => image,
             _ => panic!("Colour conversions aren't yet supported"),
         };
-        let max_val = Self::get_max_value(image).unwrap_or_else(|| 255);
+        let max_val = 255;
 
         let mut result = self.generate_header(image.rows(), image.cols(), max_val);
         // Not very accurate as a reserve, doesn't factor in max storage for
@@ -135,17 +135,68 @@ where
 }
 
 impl PpmDecoder {
-    fn decode_header(bytes: &[u8]) -> (usize, usize) {
+    fn decode_header(bytes: &[u8]) -> std::io::Result<(usize, usize, usize)> {
+        let err = || Error::new(ErrorKind::InvalidData, "Error in file header");
         // We don't need the max value for decoding bytes!
-        unimplemented!()
+        if let Ok(s) = String::from_utf8(bytes.to_vec()) {
+            let res = s.split_whitespace()
+                .map(|x| x.parse::<usize>().unwrap_or(0))
+                .collect::<Vec<_>>();
+            if res.len() == 3 {
+                Ok((res[0], res[1], res[2]))
+            } else {
+                Err(err())
+            }
+        } else {
+            Err(err())
+        }
     }
 
     fn decode_binary<T>(bytes: &[u8]) -> std::io::Result<Image<T>>
     where
         T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display,
     {
-        unimplemented!()
+        let err = || Error::new(ErrorKind::InvalidData, "Error in file encoding");
+        const WHITESPACE: &[u8] = b" \t\n\r";
+        
+        let mut image_bytes = Vec::<T>::new();
+        
+        let mut last_saw_whitespace = false;
+        let mut val_count = 0;
+        let header_end= bytes.iter()
+            .position(|&b| {
+                if last_saw_whitespace && !WHITESPACE.contains(&b) {
+                    val_count += 1;
+                    last_saw_whitespace = false;
+                } else if WHITESPACE.contains(&b) {
+                    last_saw_whitespace = true;
+                }
+                if val_count == 3 && WHITESPACE.contains(&b) {
+                    true
+                } else {
+                    false
+                }
+            }).ok_or_else(|| err())?;
+        
+        let (rows, cols, max_val) = Self::decode_header(&bytes[0..header_end])?;
+        println!("Read header {}:{}:{}", rows, cols, max_val);
+        for b in bytes.iter().skip(header_end+1) {
+            let real_pixel = (*b as f64) * (255.0f64 / (max_val as f64));
+            println!("Real pixel {:?}", real_pixel);
+            image_bytes.push(T::from_u8(real_pixel as u8)
+                             .unwrap_or_else(|| T::zero()));
+        }
+        if image_bytes.is_empty() {
+            Err(err())
+        } else {
+            let image = Image::<T>::from_shape_data(rows, 
+                                                    cols, 
+                                                    ColourModel::RGB,
+                                                    image_bytes);
+            Ok(image)
+        }
     }
+
 
     fn decode_plaintext<T>(bytes: &[u8]) -> std::io::Result<Image<T>>
     where
@@ -156,33 +207,33 @@ impl PpmDecoder {
         let data = String::from_utf8(bytes.to_vec())
             .map_err(|_| err())?;
         
-        let mut rows: Option<usize> = None;
-        let mut cols: Option<usize> = None;
-        let mut max_val: Option<usize> = None;
+        let mut rows = -1;
+        let mut cols = -1;
+        let mut max_val = -1;
         let mut image_bytes = Vec::<T>::new();
         for line in data.lines().filter(|l| !l.starts_with("#")) {
 
             for value in line.split_whitespace().take_while(|x| !x.starts_with("#")){
-                let temp = value.parse::<usize>().map_err(|_| err())?;
-                if rows.is_none() {
-                    rows = Some(temp);
-                } else if cols.is_none() {
-                    cols = Some(temp);
-                    image_bytes.reserve(rows.unwrap()*cols.unwrap()*3);
-                } else if max_val.is_none() {
-                    max_val = Some(temp);
+                let temp = value.parse::<isize>().map_err(|_| err())?;
+                if rows < 0 {
+                    rows = temp;
+                } else if cols < 0 {
+                    cols = temp;
+                    image_bytes.reserve((rows*cols*3) as usize);
+                } else if max_val < 0 {
+                    max_val = temp;
                 } else {
-                    image_bytes.push(T::from_usize(temp)
+                    let real_pixel = (temp as f64) * (255.0f64 / (max_val as f64));
+                    image_bytes.push(T::from_f64(real_pixel)
                                      .unwrap_or_else(|| T::zero()));
                 }
             }
         }
-
         if image_bytes.is_empty() {
             Err(err())
         } else {
-            let image = Image::<T>::from_shape_data(rows.unwrap(), 
-                                                    cols.unwrap(), 
+            let image = Image::<T>::from_shape_data(rows as usize, 
+                                                    cols as usize, 
                                                     ColourModel::RGB,
                                                     image_bytes);
             Ok(image)
