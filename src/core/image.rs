@@ -1,29 +1,41 @@
-use crate::core::formats::PixelFormat;
-use core::ops::{Add, Mul, Sub};
+use crate::core::colour_models::*;
 use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
-use num_traits::{One, Zero};
+use num_traits::{Num, NumAssignOps};
+use num_traits::cast::{NumCast, FromPrimitive};
+use std::fmt::Display;
 
 /// Basic structure containing an image.
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Image<T> {
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
     ///
     /// This should allow for max compatibility with maths ops in ndarray
     pub data: Array3<T>,
-    /// Pixel format stored internally
-    format: PixelFormat,
+    /// Representation of how colour is encoded in the image
+    model: ColourModel,
 }
 
 impl<T> Image<T>
 where
-    T: One + Zero + Clone + Mul + Add + Sub,
+    T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display,
 {
     //! Construct a new image filled with zeros using the given dimensions and
-    //! pixel format
-    pub fn new(rows: usize, columns: usize, format: PixelFormat) -> Self {
+    //! a colour model
+    pub fn new(rows: usize, columns: usize, model: ColourModel) -> Self {
         Image {
-            data: Array3::<T>::zeros((rows, columns, format.channels())),
-            format: format,
+            data: Array3::<T>::zeros((rows, columns, model.channels())),
+            model: model,
+        }
+    }
+
+    pub fn from_shape_data(rows: usize, cols: usize, model: ColourModel, data: Vec<T>) -> Self {
+        let data = Array3::<T>::from_shape_vec((rows, cols, model.channels()), data)
+            .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, model.channels())));
+        
+        Image {
+            data: data,
+            model: model
         }
     }
 
@@ -41,7 +53,7 @@ where
     pub fn conv(&self, kernel: ArrayView3<T>) -> Image<T> {
         Image {
             data: conv(self.data.view(), kernel),
-            format: self.format,
+            model: self.model,
         }
     }
 
@@ -49,13 +61,45 @@ where
     pub fn conv_inplace(&mut self, kernel: ArrayView3<T>) {
         self.data = conv(self.data.view(), kernel);
     }
+
+    pub fn convert_model(&self, model: ColourModel) -> Image<T> {
+        unimplemented!()
+    }
 }
+
+impl <T>Image<T> {
+    /// Returns the number of rows in an image
+    pub fn rows(&self) -> usize {
+        self.data.shape()[0]
+    }
+    /// Returns the number of channels in an image
+    pub fn cols(&self) -> usize {
+        self.data.shape()[1]
+    }
+
+    /// Convenience method to get number of channels
+    pub fn channels(&self) -> usize {
+        self.model.channels()
+    }
+
+    /// Returns the colour model used by the image
+    pub fn colour_model(&self) -> ColourModel {
+        self.model
+    }
+    
+    /// This method changes the colour model without changing any of the 
+    /// underlying data
+    pub fn force_model(&mut self, model: ColourModel) {
+        self.model = model;
+    }
+}
+
 
 /// Implements a simple image convolution given a image and kernel
 /// TODO Add an option to change kernel centre
 pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
 where
-    T: Clone + Zero + Mul<T, Output = T>,
+    T: Copy + Clone + Num + NumAssignOps,
 {
     let mut result = Array3::<T>::zeros(image.dim());
     let k_s = kernel.shape();
@@ -71,4 +115,19 @@ where
     });
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test] 
+    fn image_consistency_checks() {
+        let i = Image::<u8>::new(1, 2, ColourModel::RGB);
+        assert_eq!(i.rows(), 1);
+        assert_eq!(i.cols(), 2);
+        assert_eq!(i.channels(), 3);
+        assert_eq!(i.channels(), i.colour_model().channels());
+    }
+
 }
