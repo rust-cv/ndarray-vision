@@ -4,4 +4,4 @@ pub mod traits;
 
 pub use colour_models::*;
 pub use image::*;
-
+pub use traits::*;

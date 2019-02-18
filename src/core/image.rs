@@ -50,6 +50,14 @@ where
             model: PhantomData
         }
     }
+    
+    /// Converts image into a different type - doesn't scale to new pixel bounds
+    pub fn into_type<T2>(&self) -> Image<T2, C> where T2: From<T>,
+    T2: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
+    {
+        let data = self.data.map(|x| (*x).into());
+        Image::<T2, C>::from_data(data)
+    }
 
     /// Get a view of all colour channels at a pixels location
     pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
@@ -74,6 +82,9 @@ where
         self.data = conv(self.data.view(), kernel);
     }
 }
+
+
+
 
 impl <T, C>Image<T, C> where C: ColourModel {
     /// Returns the number of rows in an image

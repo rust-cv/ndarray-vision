@@ -1,4 +1,4 @@
-use crate::core::{RGB, Image, traits::PixelBound};
+use crate::core::{RGB, Image, PixelBound};
 use crate::format::{Decoder, Encoder};
 use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{NumCast, FromPrimitive};
@@ -20,6 +20,11 @@ pub struct PpmEncoder {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct PpmDecoder;
 
+/// Implements the encoder trait for the PpmEncoder.
+///
+/// The ColourModel type argument is locked to RGB - this prevents calling 
+/// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
+/// stabilised.
 impl<T> Encoder<T, RGB> for PpmEncoder
 where
     T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
@@ -127,6 +132,11 @@ impl PpmEncoder {
 }
 
 
+/// Implements the decoder trait for the PpmEncoder.
+///
+/// The ColourModel type argument is locked to RGB - this prevents calling 
+/// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
+/// stabilised.
 impl<T> Decoder<T, RGB> for PpmDecoder
 where
     T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound + FromPrimitive,
@@ -154,6 +164,8 @@ where
 
 
 impl PpmDecoder {
+    /// Decodes a PPM header getting (rows, cols, maximum value) or returning
+    /// an io::Error if the header is malformed
     fn decode_header(bytes: &[u8]) -> std::io::Result<(usize, usize, usize)> {
         let err = || Error::new(ErrorKind::InvalidData, "Error in file header");
         // We don't need the max value for decoding bytes!
@@ -198,10 +210,8 @@ impl PpmDecoder {
             }).ok_or_else(|| err())?;
         
         let (rows, cols, max_val) = Self::decode_header(&bytes[0..header_end])?;
-        println!("Read header {}:{}:{}", rows, cols, max_val);
         for b in bytes.iter().skip(header_end+1) {
             let real_pixel = (*b as f64) * (255.0f64 / (max_val as f64));
-            println!("Real pixel {:?}", real_pixel);
             image_bytes.push(T::from_u8(real_pixel as u8)
                              .unwrap_or_else(|| T::zero()));
         }
