@@ -1,4 +1,5 @@
 use crate::core::colour_models::*;
+use crate::core::traits::PixelBound;
 use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
 use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{NumCast, FromPrimitive};
@@ -16,6 +17,7 @@ pub struct Image<T, C=RGB> where C: ColourModel {
     /// Representation of how colour is encoded in the image
     model: PhantomData<C>,
 }
+
 
 impl<T, C> Image<T, C>
 where
