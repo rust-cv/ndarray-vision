@@ -21,7 +21,7 @@ pub struct Image<T, C=RGB> where C: ColourModel {
 
 impl<T, C> Image<T, C>
 where
-    T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display,
+    T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     C: ColourModel
 {
     /// Construct the image from a given Array3
@@ -111,9 +111,9 @@ where
             .slice_mut(s![i + row_offset, j + col_offset, ..])
             .assign(&sums);
     });
-
     result
 }
+
 
 #[cfg(test)]
 mod tests {

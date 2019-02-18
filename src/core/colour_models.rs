@@ -1,7 +1,8 @@
 use crate::core::Image;
+use crate::core::traits::*;
 use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{NumCast, FromPrimitive};
-use ndarray::Array3;
+use ndarray::{arr1, Array3, s, Zip};
 use std::fmt::Display;
 use std::convert::From;
 
@@ -43,10 +44,57 @@ pub trait ColourModel {
     }
 }
 
-impl <T> From<Image<T, RGB>> for Image<T, HSV> where T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display {
+/// Returns a normalised pixel value or 0 if it can't convert the types.
+/// This should never fail if your types are good.
+fn norm_pixel_value<T>(t: T) -> f64 where T: PixelBound + Num + NumCast {
+    let numerator = (t + T::min_pixel()).to_f64();
+    let denominator = (T::max_pixel() - T::min_pixel()).to_f64();
+
+    let numerator = numerator.unwrap_or_else(|| 0.0f64);
+    let denominator = denominator.unwrap_or_else(|| 1.0f64);
+
+    numerator / denominator
+}
+
+
+impl <T> From<Image<T, RGB>> for Image<T, HSV> 
+where T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound {
     fn from(image: Image<T, RGB>) -> Self {
-        let res = Array3::<T>::zeros((image.rows(), image.cols(), HSV::channels()));
-        
+        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), HSV::channels()));
+        let window = image.data.windows((1, 1, image.channels()));
+
+        Zip::indexed(window).apply(|(i, j, _), pix| {
+            let r_norm = norm_pixel_value(pix[[0, 0, 0]]);
+            let g_norm = norm_pixel_value(pix[[0,0,1]]);
+            let b_norm = norm_pixel_value(pix[[0,0,2]]);
+            let cmax = r_norm.max(g_norm.max(b_norm));
+            let cmin = r_norm.min(g_norm.min(b_norm));
+            let delta = cmax - cmin;
+            
+            let s = if cmax > 0.0f64 {
+                delta / cmax
+            } else {
+                0.0f64
+            };
+
+            let h = if cmax <= r_norm {
+                60.0 * (((g_norm - b_norm)/delta)%6.0)
+            } else if cmax <= g_norm {
+                60.0 * ((b_norm - r_norm)/delta + 2.0)
+            } else {
+                60.0 * ((r_norm - g_norm)/delta + 4.0)
+            };
+            let h = h/360.0f64;
+
+            let h = h * T::max_pixel().to_f64().unwrap_or_else(|| 0.0f64);
+            let h = T::from_f64(h).unwrap_or_else(|| T::zero());
+            let s = s * T::max_pixel().to_f64().unwrap_or_else(|| 0.0f64);
+            let s = T::from_f64(s).unwrap_or_else(|| T::zero());
+            let v = cmax * T::max_pixel().to_f64().unwrap_or_else(|| 0.0f64);
+            let v = T::from_f64(v).unwrap_or_else(|| T::zero());
+
+            res.slice_mut(s![i, j, ..]).assign(&arr1(&[h, s, v]));
+        });
         Self::from_data(res)
     }
 }
