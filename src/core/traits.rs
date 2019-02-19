@@ -1,4 +1,3 @@
-
 /// When working with pixel data types may have odd bitdepths or not use the
 /// full range of the value. We can't assume every image with `u8` ranges from
 /// [0..255]. Additionally, floating point representations of pixels normally
@@ -17,9 +16,9 @@
 ///     fn max_pixel() -> Self {
 ///         LimitedU8(160u8)
 ///     }
-/// } 
+/// }
 ///
-/// And then implement the required numerical traits just calling the 
+/// And then implement the required numerical traits just calling the
 /// corresponding methods in `u8`
 /// ```
 pub trait PixelBound {
@@ -48,7 +47,6 @@ impl PixelBound for f32 {
     }
 }
 
-
 impl PixelBound for u8 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -58,7 +56,6 @@ impl PixelBound for u8 {
         Self::max_value()
     }
 }
-
 
 impl PixelBound for u16 {
     fn min_pixel() -> Self {
@@ -70,7 +67,6 @@ impl PixelBound for u16 {
     }
 }
 
-
 impl PixelBound for u32 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -80,7 +76,6 @@ impl PixelBound for u32 {
         Self::max_value()
     }
 }
-
 
 impl PixelBound for u64 {
     fn min_pixel() -> Self {
@@ -92,7 +87,6 @@ impl PixelBound for u64 {
     }
 }
 
-
 impl PixelBound for u128 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -102,7 +96,6 @@ impl PixelBound for u128 {
         Self::max_value()
     }
 }
-
 
 impl PixelBound for i8 {
     fn min_pixel() -> Self {
@@ -114,7 +107,6 @@ impl PixelBound for i8 {
     }
 }
 
-
 impl PixelBound for i16 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -124,7 +116,6 @@ impl PixelBound for i16 {
         Self::max_value()
     }
 }
-
 
 impl PixelBound for i32 {
     fn min_pixel() -> Self {
@@ -136,7 +127,6 @@ impl PixelBound for i32 {
     }
 }
 
-
 impl PixelBound for i64 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -147,7 +137,6 @@ impl PixelBound for i64 {
     }
 }
 
-
 impl PixelBound for i128 {
     fn min_pixel() -> Self {
         Self::min_value()
@@ -157,4 +146,3 @@ impl PixelBound for i128 {
         Self::max_value()
     }
 }
-

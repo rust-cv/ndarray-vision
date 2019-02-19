@@ -1,14 +1,17 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
 use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
+use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
-use num_traits::cast::{NumCast, FromPrimitive};
 use std::fmt::Display;
 use std::marker::PhantomData;
 
 /// Basic structure containing an image.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Image<T, C=RGB> where C: ColourModel {
+pub struct Image<T, C = RGB>
+where
+    C: ColourModel,
+{
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
     ///
@@ -18,11 +21,18 @@ pub struct Image<T, C=RGB> where C: ColourModel {
     model: PhantomData<C>,
 }
 
-
 impl<T, C> Image<T, C>
 where
-    T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
-    C: ColourModel
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+    C: ColourModel,
 {
     /// Construct the image from a given Array3
     pub fn from_data(data: Array3<T>) -> Self {
@@ -44,16 +54,26 @@ where
     pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Self {
         let data = Array3::<T>::from_shape_vec((rows, cols, C::channels()), data)
             .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));
-        
+
         Image {
             data: data,
-            model: PhantomData
+            model: PhantomData,
         }
     }
-    
+
     /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2>(&self) -> Image<T2, C> where T2: From<T>,
-    T2: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
+    pub fn into_type<T2>(&self) -> Image<T2, C>
+    where
+        T2: From<T>,
+        T2: Copy
+            + Clone
+            + FromPrimitive
+            + Num
+            + NumAssignOps
+            + NumCast
+            + PartialOrd
+            + Display
+            + PixelBound,
     {
         let data = self.data.map(|x| (*x).into());
         Image::<T2, C>::from_data(data)
@@ -83,10 +103,10 @@ where
     }
 }
 
-
-
-
-impl <T, C>Image<T, C> where C: ColourModel {
+impl<T, C> Image<T, C>
+where
+    C: ColourModel,
+{
     /// Returns the number of rows in an image
     pub fn rows(&self) -> usize {
         self.data.shape()[0]
@@ -100,9 +120,7 @@ impl <T, C>Image<T, C> where C: ColourModel {
     pub fn channels(&self) -> usize {
         C::channels()
     }
-
 }
-
 
 /// Implements a simple image convolution given a image and kernel
 /// TODO Add an option to change kernel centre
@@ -125,12 +143,11 @@ where
     result
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test] 
+    #[test]
     fn image_consistency_checks() {
         let i = Image::<u8, RGB>::new(1, 2);
         assert_eq!(i.rows(), 1);

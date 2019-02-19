@@ -1,10 +1,10 @@
-use crate::core::Image;
 use crate::core::traits::*;
+use crate::core::Image;
+use ndarray::{arr1, s, Array3, Zip};
+use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
-use num_traits::cast::{NumCast, FromPrimitive};
-use ndarray::{arr1, Array3, s, Zip};
-use std::fmt::Display;
 use std::convert::From;
+use std::fmt::Display;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Gray;
@@ -46,7 +46,10 @@ pub trait ColourModel {
 
 /// Returns a normalised pixel value or 0 if it can't convert the types.
 /// This should never fail if your types are good.
-fn norm_pixel_value<T>(t: T) -> f64 where T: PixelBound + Num + NumCast {
+fn norm_pixel_value<T>(t: T) -> f64
+where
+    T: PixelBound + Num + NumCast,
+{
     let numerator = (t + T::min_pixel()).to_f64();
     let denominator = (T::max_pixel() - T::min_pixel()).to_f64();
 
@@ -56,35 +59,40 @@ fn norm_pixel_value<T>(t: T) -> f64 where T: PixelBound + Num + NumCast {
     numerator / denominator
 }
 
-
-impl <T> From<Image<T, RGB>> for Image<T, HSV> 
-where T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound {
+impl<T> From<Image<T, RGB>> for Image<T, HSV>
+where
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+{
     fn from(image: Image<T, RGB>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), HSV::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
         Zip::indexed(window).apply(|(i, j, _), pix| {
             let r_norm = norm_pixel_value(pix[[0, 0, 0]]);
-            let g_norm = norm_pixel_value(pix[[0,0,1]]);
-            let b_norm = norm_pixel_value(pix[[0,0,2]]);
+            let g_norm = norm_pixel_value(pix[[0, 0, 1]]);
+            let b_norm = norm_pixel_value(pix[[0, 0, 2]]);
             let cmax = r_norm.max(g_norm.max(b_norm));
             let cmin = r_norm.min(g_norm.min(b_norm));
             let delta = cmax - cmin;
-            
-            let s = if cmax > 0.0f64 {
-                delta / cmax
-            } else {
-                0.0f64
-            };
+
+            let s = if cmax > 0.0f64 { delta / cmax } else { 0.0f64 };
 
             let h = if cmax <= r_norm {
-                60.0 * (((g_norm - b_norm)/delta)%6.0)
+                60.0 * (((g_norm - b_norm) / delta) % 6.0)
             } else if cmax <= g_norm {
-                60.0 * ((b_norm - r_norm)/delta + 2.0)
+                60.0 * ((b_norm - r_norm) / delta + 2.0)
             } else {
-                60.0 * ((r_norm - g_norm)/delta + 4.0)
+                60.0 * ((r_norm - g_norm) / delta + 4.0)
             };
-            let h = h/360.0f64;
+            let h = h / 360.0f64;
 
             let h = h * T::max_pixel().to_f64().unwrap_or_else(|| 0.0f64);
             let h = T::from_f64(h).unwrap_or_else(|| T::zero());
@@ -99,15 +107,14 @@ where T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOr
     }
 }
 
-
-impl ColourModel for RGB{}
-impl ColourModel for HSV{}
-impl ColourModel for HSI{}
-impl ColourModel for HSL{}
-impl ColourModel for YCrCb{}
-impl ColourModel for CIEXYZ{}
-impl ColourModel for CIELAB{}
-impl ColourModel for CIELUV{}
+impl ColourModel for RGB {}
+impl ColourModel for HSV {}
+impl ColourModel for HSI {}
+impl ColourModel for HSL {}
+impl ColourModel for YCrCb {}
+impl ColourModel for CIEXYZ {}
+impl ColourModel for CIELAB {}
+impl ColourModel for CIELUV {}
 
 impl ColourModel for Gray {
     fn channels() -> usize {

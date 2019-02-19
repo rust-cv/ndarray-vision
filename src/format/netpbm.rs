@@ -1,7 +1,7 @@
-use crate::core::{RGB, Image, PixelBound};
+use crate::core::{Image, PixelBound, RGB};
 use crate::format::{Decoder, Encoder};
+use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
-use num_traits::cast::{NumCast, FromPrimitive};
 use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 
@@ -16,18 +16,25 @@ pub struct PpmEncoder {
     encoding: EncodingType,
 }
 
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct PpmDecoder;
 
 /// Implements the encoder trait for the PpmEncoder.
 ///
-/// The ColourModel type argument is locked to RGB - this prevents calling 
+/// The ColourModel type argument is locked to RGB - this prevents calling
 /// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
 /// stabilised.
 impl<T> Encoder<T, RGB> for PpmEncoder
 where
-    T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
+    T: Copy
+        + Clone
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound
+        + FromPrimitive,
 {
     fn encode(&self, image: &Image<T, RGB>) -> Vec<u8> {
         use EncodingType::*;
@@ -53,7 +60,7 @@ impl PpmEncoder {
             encoding: EncodingType::Plaintext,
         }
     }
-    
+
     /// Gets the maximum pixel value in the image across all channels. This is
     /// used in the PPM header
     fn get_max_value<T>(image: &Image<T, RGB>) -> Option<u8>
@@ -131,21 +138,28 @@ impl PpmEncoder {
     }
 }
 
-
 /// Implements the decoder trait for the PpmEncoder.
 ///
-/// The ColourModel type argument is locked to RGB - this prevents calling 
+/// The ColourModel type argument is locked to RGB - this prevents calling
 /// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
 /// stabilised.
 impl<T> Decoder<T, RGB> for PpmDecoder
 where
-    T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound + FromPrimitive,
+    T: Copy
+        + Clone
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound
+        + FromPrimitive,
 {
-    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T>> {
+    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T, RGB>> {
         if bytes.len() < 9 {
             Err(Error::new(
                 ErrorKind::InvalidData,
-                "File is below minimum size of ppm"
+                "File is below minimum size of ppm",
             ))
         } else {
             if bytes.starts_with(b"P3") {
@@ -162,7 +176,6 @@ where
     }
 }
 
-
 impl PpmDecoder {
     /// Decodes a PPM header getting (rows, cols, maximum value) or returning
     /// an io::Error if the header is malformed
@@ -170,7 +183,8 @@ impl PpmDecoder {
         let err = || Error::new(ErrorKind::InvalidData, "Error in file header");
         // We don't need the max value for decoding bytes!
         if let Ok(s) = String::from_utf8(bytes.to_vec()) {
-            let res = s.split_whitespace()
+            let res = s
+                .split_whitespace()
                 .map(|x| x.parse::<usize>().unwrap_or(0))
                 .collect::<Vec<_>>();
             if res.len() == 3 {
@@ -185,16 +199,25 @@ impl PpmDecoder {
 
     fn decode_binary<T>(bytes: &[u8]) -> std::io::Result<Image<T, RGB>>
     where
-        T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound + FromPrimitive,
+        T: Copy
+            + Clone
+            + Num
+            + NumAssignOps
+            + NumCast
+            + PartialOrd
+            + Display
+            + PixelBound
+            + FromPrimitive,
     {
         let err = || Error::new(ErrorKind::InvalidData, "Error in file encoding");
         const WHITESPACE: &[u8] = b" \t\n\r";
-        
+
         let mut image_bytes = Vec::<T>::new();
-        
+
         let mut last_saw_whitespace = false;
         let mut val_count = 0;
-        let header_end= bytes.iter()
+        let header_end = bytes
+            .iter()
             .position(|&b| {
                 if last_saw_whitespace && !WHITESPACE.contains(&b) {
                     val_count += 1;
@@ -207,85 +230,84 @@ impl PpmDecoder {
                 } else {
                     false
                 }
-            }).ok_or_else(|| err())?;
-        
+            })
+            .ok_or_else(|| err())?;
+
         let (rows, cols, max_val) = Self::decode_header(&bytes[0..header_end])?;
-        for b in bytes.iter().skip(header_end+1) {
+        for b in bytes.iter().skip(header_end + 1) {
             let real_pixel = (*b as f64) * (255.0f64 / (max_val as f64));
-            image_bytes.push(T::from_u8(real_pixel as u8)
-                             .unwrap_or_else(|| T::zero()));
+            image_bytes.push(T::from_u8(real_pixel as u8).unwrap_or_else(|| T::zero()));
         }
         if image_bytes.is_empty() {
             Err(err())
         } else {
-            let image = Image::<T, RGB>::from_shape_data(rows, 
-                                                    cols, 
-                                                    image_bytes);
+            let image = Image::<T, RGB>::from_shape_data(rows, cols, image_bytes);
             Ok(image)
         }
     }
 
-
     fn decode_plaintext<T>(bytes: &[u8]) -> std::io::Result<Image<T, RGB>>
     where
-        T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound + FromPrimitive,
+        T: Copy
+            + Clone
+            + Num
+            + NumAssignOps
+            + NumCast
+            + PartialOrd
+            + Display
+            + PixelBound
+            + FromPrimitive,
     {
         let err = || Error::new(ErrorKind::InvalidData, "Error in file encoding");
         // plaintext is easier than binary because the whole thing is a string
-        let data = String::from_utf8(bytes.to_vec())
-            .map_err(|_| err())?;
-        
+        let data = String::from_utf8(bytes.to_vec()).map_err(|_| err())?;
+
         let mut rows = -1;
         let mut cols = -1;
         let mut max_val = -1;
         let mut image_bytes = Vec::<T>::new();
         for line in data.lines().filter(|l| !l.starts_with("#")) {
-
-            for value in line.split_whitespace().take_while(|x| !x.starts_with("#")){
+            for value in line.split_whitespace().take_while(|x| !x.starts_with("#")) {
                 let temp = value.parse::<isize>().map_err(|_| err())?;
                 if rows < 0 {
                     rows = temp;
                 } else if cols < 0 {
                     cols = temp;
-                    image_bytes.reserve((rows*cols*3) as usize);
+                    image_bytes.reserve((rows * cols * 3) as usize);
                 } else if max_val < 0 {
                     max_val = temp;
                 } else {
                     let real_pixel = (temp as f64) * (255.0f64 / (max_val as f64));
-                    image_bytes.push(T::from_f64(real_pixel)
-                                     .unwrap_or_else(|| T::zero()));
+                    image_bytes.push(T::from_f64(real_pixel).unwrap_or_else(|| T::zero()));
                 }
             }
         }
         if image_bytes.is_empty() {
             Err(err())
         } else {
-            let image = Image::<T, RGB>::from_shape_data(rows as usize, 
-                                                    cols as usize, 
-                                                    image_bytes);
+            let image = Image::<T, RGB>::from_shape_data(rows as usize, cols as usize, image_bytes);
             Ok(image)
         }
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::core::colour_models::*;
     use super::*;
+    use crate::core::colour_models::*;
     use ndarray::arr1;
 
     #[test]
     fn max_value_test() {
         let full_range = "P3 1 1 255 0 255 0";
         let clamped = "P3 1 1 1 0 1 0";
-        
+
         let decoder = PpmDecoder::default();
         let full_image: Image<u8, RGB> = decoder.decode(full_range.as_bytes()).unwrap();
         let clamp_image: Image<u8, RGB> = decoder.decode(clamped.as_bytes()).unwrap();
 
         assert_eq!(full_image, clamp_image);
-        assert_eq!(full_image.pixel(0,0), arr1(&[0, 255, 0]));
+        assert_eq!(full_image.pixel(0, 0), arr1(&[0, 255, 0]));
     }
 
     #[test]

@@ -1,7 +1,7 @@
-use crate::core::*;
 use crate::core::traits::PixelBound;
+use crate::core::*;
+use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
-use num_traits::cast::{NumCast, FromPrimitive};
 use std::fmt::Display;
 use std::fs::{read, File};
 use std::io::prelude::*;
@@ -10,7 +10,7 @@ use std::io::prelude::*;
 pub trait Encoder<T, C>
 where
     T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
-    C: ColourModel
+    C: ColourModel,
 {
     /// Encode an image into a sequence of bytes for the given format
     fn encode(&self, image: &Image<T, C>) -> Vec<u8>;
@@ -27,8 +27,16 @@ where
 /// Trait for an image decoder, use this to get an image from a byte stream
 pub trait Decoder<T, C>
 where
-    T: Copy + Clone + FromPrimitive + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
-    C: ColourModel
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+    C: ColourModel,
 {
     /// From the bytes decode an image, will perform any scaling or conversions
     /// required to represent elements with type T.
