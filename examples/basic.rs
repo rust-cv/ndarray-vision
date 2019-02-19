@@ -6,12 +6,12 @@ use ndarray::{arr1, arr3, Array3};
 
 fn main() {
     let decoder = PpmDecoder::default();
-    let image: Image<u8> = decoder.decode_file("test.ppm").unwrap();
+    let image: Image<u8, _> = decoder.decode_file("test.ppm").unwrap();
     let ppm = PpmEncoder::new();
     let res = ppm.encode_file(&image, "test2.ppm");
 
     let decoder2 = PpmDecoder::default();
-    let image: Image<u8> = decoder.decode_file("test2.ppm").unwrap();
+    let image: Image<u8, _> = decoder.decode_file("test2.ppm").unwrap();
     let ppm = PpmEncoder::new_plaintext_encoder();
     let res = ppm.encode_file(&image, "test3.ppm");
     println!("Save result {:?}", res);
