@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 /// Basic structure containing an image.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Image<T, C = RGB>
+pub struct Image<T, C>
 where
     C: ColourModel,
 {
@@ -75,7 +75,14 @@ where
             + Display
             + PixelBound,
     {
-        let data = self.data.map(|x| (*x).into());
+        let rescale = |x: &T| {
+            let scaled = rescale_pixel_value(*x)
+                * (T2::max_pixel() - T2::min_pixel())
+                    .to_f64()
+                    .unwrap_or_else(|| 0.0f64);
+            T2::from_f64(scaled).unwrap_or_else(|| T2::zero()) + T2::min_pixel()
+        };
+        let data = self.data.map(rescale);
         Image::<T2, C>::from_data(data)
     }
 
@@ -122,6 +129,21 @@ where
     }
 }
 
+/// Returns a normalised pixel value or 0 if it can't convert the types.
+/// This should never fail if your types are good.
+pub fn rescale_pixel_value<T>(t: T) -> f64
+where
+    T: PixelBound + Num + NumCast,
+{
+    let numerator = (t + T::min_pixel()).to_f64();
+    let denominator = (T::max_pixel() - T::min_pixel()).to_f64();
+
+    let numerator = numerator.unwrap_or_else(|| 0.0f64);
+    let denominator = denominator.unwrap_or_else(|| 1.0f64);
+
+    numerator / denominator
+}
+
 /// Implements a simple image convolution given a image and kernel
 /// TODO Add an option to change kernel centre
 pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
@@ -146,6 +168,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ndarray::arr1;
 
     #[test]
     fn image_consistency_checks() {
@@ -154,6 +177,18 @@ mod tests {
         assert_eq!(i.cols(), 2);
         assert_eq!(i.channels(), 3);
         assert_eq!(i.channels(), i.data.shape()[2]);
+    }
+
+    #[test]
+    fn image_type_conversion() {
+        let mut i = Image::<u8, RGB>::new(1, 1);
+        i.pixel_mut(0, 0)
+            .assign(&arr1(&[u8::max_value(), 0, u8::max_value() / 3]));
+        let t: Image<u16, RGB> = i.into_type();
+        assert_eq!(
+            t.pixel(0, 0),
+            arr1(&[u16::max_value(), 0, u16::max_value() / 3])
+        );
     }
 
 }
