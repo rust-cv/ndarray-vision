@@ -5,6 +5,7 @@ use num_traits::{Num, NumAssignOps};
 use std::fmt::Display;
 use std::fs::{read, File};
 use std::io::prelude::*;
+use std::path::Path;
 
 /// Trait for an image encoder
 pub trait Encoder<T, C>
@@ -17,7 +18,7 @@ where
 
     /// Encode an image saving it to the file at filename. This function shouldn't
     /// add an extension preferring the user to do that instead.
-    fn encode_file(&self, image: &Image<T, C>, filename: &str) -> std::io::Result<()> {
+    fn encode_file<P: AsRef<Path>>(&self, image: &Image<T, C>, filename: P) -> std::io::Result<()> {
         let mut file = File::create(filename)?;
         file.write_all(&self.encode(image))?;
         Ok(())
@@ -42,7 +43,7 @@ where
     /// required to represent elements with type T.
     fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T, C>>;
     /// Given a filename decode an image performing any necessary conversions.
-    fn decode_file(&self, filename: &str) -> std::io::Result<Image<T, C>> {
+    fn decode_file<P: AsRef<Path>>(&self, filename: P) -> std::io::Result<Image<T, C>> {
         let bytes = read(filename)?;
         self.decode(&bytes)
     }

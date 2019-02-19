@@ -94,7 +94,6 @@ where
     (h, s, v)
 }
 
-
 pub fn hsv_to_rgb<T>(h: T, s: T, v: T) -> (T, T, T)
 where
     T: Copy
@@ -137,7 +136,6 @@ where
 
     (r, g, b)
 }
-
 
 impl<T> From<Image<T, RGB>> for Image<T, HSV>
 where

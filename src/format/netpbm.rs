@@ -124,7 +124,7 @@ impl PpmEncoder {
         temp.reserve(max_margin);
 
         for data in image.data.iter() {
-            temp.push_str(&format!("{} ", data));
+            temp.push_str(&format!("{} ", data.to_u8().unwrap_or_else(|| 0)));
             if temp.len() > max_margin {
                 result.push_str(&temp);
                 result.push('\n');
@@ -138,7 +138,7 @@ impl PpmEncoder {
     }
 }
 
-/// Implements the decoder trait for the PpmEncoder.
+/// Implements the decoder trait for the PpmDecoder.
 ///
 /// The ColourModel type argument is locked to RGB - this prevents calling
 /// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is

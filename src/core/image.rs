@@ -64,7 +64,6 @@ where
     /// Converts image into a different type - doesn't scale to new pixel bounds
     pub fn into_type<T2>(&self) -> Image<T2, C>
     where
-        T2: From<T>,
         T2: Copy
             + Clone
             + FromPrimitive
@@ -73,7 +72,8 @@ where
             + NumCast
             + PartialOrd
             + Display
-            + PixelBound,
+            + PixelBound
+            + From<T>,
     {
         let rescale = |x: &T| {
             let scaled = rescale_pixel_value(*x)
