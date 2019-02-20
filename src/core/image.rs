@@ -1,6 +1,7 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
-use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
+use ndarray::prelude::*;
+use ndarray::{s, Zip};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::fmt::Display;
