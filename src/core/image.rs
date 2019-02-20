@@ -1,6 +1,7 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
-use ndarray::{s, Array3, ArrayView, ArrayView3, ArrayViewMut, Axis, Ix1, Zip};
+use ndarray::prelude::*;
+use ndarray::{s, Zip};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::fmt::Display;
@@ -64,7 +65,6 @@ where
     /// Converts image into a different type - doesn't scale to new pixel bounds
     pub fn into_type<T2>(&self) -> Image<T2, C>
     where
-        T2: From<T>,
         T2: Copy
             + Clone
             + FromPrimitive
@@ -73,7 +73,8 @@ where
             + NumCast
             + PartialOrd
             + Display
-            + PixelBound,
+            + PixelBound
+            + From<T>,
     {
         let rescale = |x: &T| {
             let scaled = rescale_pixel_value(*x)
