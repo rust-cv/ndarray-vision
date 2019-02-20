@@ -1,4 +1,4 @@
-use ndarray::{arr2, Array3, Axis, Ix3};
+use ndarray::{arr2, Array2, Array3, Axis, Ix3};
 use num_traits::{cast::FromPrimitive, float::Float, Num, NumAssignOps};
 use core::ops::Neg;
 
@@ -32,15 +32,42 @@ pub trait FixedDimensionKernelBuilder<T> {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct GaussianFilter;
 
-impl<T> KernelBuilder<T> for GaussianFilter {
-    type Params = [[T; 2]; 2];
+/// Builds a Gaussian kernel taking the covariance as a parameter. Covariance
+/// is given as 2 values for the x and y variance.
+impl<T> KernelBuilder<T> for GaussianFilter where T: Copy + Clone + FromPrimitive + Num {
+    type Params = [f64; 2];
 
     fn build(shape: Ix3) -> Result<Array3<T>, Error> {
-        unimplemented!()
+        // This recommendation was taken from OpenCV 2.4 docs
+        let sig = 0.3 * (((std::cmp::max(shape[0], 1) - 1) as f64)*0.5 - 1.0) + 0.8;
+        Self::build_with_params(shape, [sig, sig])
     }
 
-    fn build_with_params(shape: Ix3, covariance: Self::Params) -> Result<Array3<T>, Error> {
-        unimplemented!()
+    fn build_with_params(shape: Ix3, covar: Self::Params) -> Result<Array3<T>, Error> {
+        let is_even = |x| x&1==0;
+        if is_even(shape[0]) || is_even(shape[1]) || shape[0] != shape[1] || shape[2] == 0 {
+            Err(Error::InvalidDimensions)
+        } else {
+            let centre: isize = (shape[0] as isize + 1) / 2;
+            let gauss = |coord, covar|((coord - centre) as f64).powi(2)/(2.0f64*covar);
+            
+            let mut temp = Array2::from_shape_fn((shape[0], shape[1]), |(r, c)| {
+                f64::exp( - (gauss(r as isize, covar[1]) + gauss(c as isize, covar[0])))
+            });
+
+            let sum = temp.sum();
+
+            temp *= 1.0f64/sum;
+
+            let temp = temp.mapv(|x| T::from_f64(x));
+
+            if temp.iter().any(|x| x.is_none()) {
+                Err(Error::NumericError)
+            } else {
+                let temp = temp.mapv(|x| x.unwrap());
+                Ok(Array3::from_shape_fn(shape, |(r, c, _)| temp[[r, c]]))
+            }
+        }
     }
 }
 
@@ -54,16 +81,22 @@ impl<T> KernelBuilder<T> for BoxLinearFilter
 where
     T: Float + Num + NumAssignOps + FromPrimitive,
 {
-    type Params = ();
+    type Params = bool;
     fn build(shape: Ix3) -> Result<Array3<T>, Error> {
+        Self::build_with_params(shape, true)
+    }
+    
+    fn build_with_params(shape: Ix3, normalise: Self::Params) -> Result<Array3<T>, Error> {
         if shape[0] < 1 || shape[1] < 1 || shape[2] < 1 {
             Err(Error::InvalidDimensions)
-        } else {
+        } else if normalise {
             let weight = 1.0f64 / ((shape[0] * shape[1]) as f64);
             match T::from_f64(weight) {
                 Some(weight) => Ok(Array3::from_elem(shape, weight)),
                 None => Err(Error::NumericError),
             }
+        } else {
+            Ok(Array3::ones(shape))
         }
     }
 }
@@ -124,6 +157,8 @@ mod tests {
 
     #[test]
     fn test_sobel_filter() {
+        // As sobel works with integer numbers I'm going to ignore the perils of
+        // floating point comparisons... for now.
         let filter: Array3<f32> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
 
         assert_eq!(filter, arr3(&[[[-1.0f32], [0.0f32], [1.0f32]],
@@ -135,5 +170,21 @@ mod tests {
         assert_eq!(filter, arr3(&[[[-1.0f32], [-2.0f32], [-1.0f32]],
                                   [[0.0f32], [0.0f32], [0.0f32]],
                                   [[1.0f32], [2.0f32], [1.0f32]]]))
+    }
+
+    #[test]
+    fn test_gaussian_filter() {
+        let bad_gauss: Result<Array3<f64>, _> = GaussianFilter::build(Ix3(3, 5, 2));
+        assert_eq!(bad_gauss, Err(Error::InvalidDimensions));
+        let bad_gauss: Result<Array3<f64>, _> = GaussianFilter::build(Ix3(4, 4, 2));
+        assert_eq!(bad_gauss, Err(Error::InvalidDimensions));
+        let bad_gauss: Result<Array3<f64>, _> = GaussianFilter::build(Ix3(4, 0, 2));
+        assert_eq!(bad_gauss, Err(Error::InvalidDimensions));
+       
+        let channels = 2;
+        let filter:Array3<f64> = GaussianFilter::build_with_params(Ix3(3, 3, channels), [0.3, 0.3])
+            .unwrap();
+        
+        assert_eq!(filter.sum().round(), channels as f64);
     }
 }
