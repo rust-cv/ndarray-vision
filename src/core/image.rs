@@ -1,7 +1,7 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
-use ndarray::{s, Zip};
+use ndarray::s;
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::fmt::Display;
@@ -19,7 +19,7 @@ where
     /// This should allow for max compatibility with maths ops in ndarray
     pub data: Array3<T>,
     /// Representation of how colour is encoded in the image
-    model: PhantomData<C>,
+    pub(crate) model: PhantomData<C>,
 }
 
 impl<T, C> Image<T, C>
@@ -96,19 +96,6 @@ where
     pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
         self.data.slice_mut(s![row, col, ..])
     }
-
-    /// Return a image formed when you convolve the image with a kernel
-    pub fn conv(&self, kernel: ArrayView3<T>) -> Image<T, C> {
-        Image {
-            data: conv(self.data.view(), kernel),
-            model: self.model,
-        }
-    }
-
-    /// Apply a convolution to the image
-    pub fn conv_inplace(&mut self, kernel: ArrayView3<T>) {
-        self.data = conv(self.data.view(), kernel);
-    }
 }
 
 impl<T, C> Image<T, C>
@@ -143,27 +130,6 @@ where
     let denominator = denominator.unwrap_or_else(|| 1.0f64);
 
     numerator / denominator
-}
-
-/// Implements a simple image convolution given a image and kernel
-/// TODO Add an option to change kernel centre
-pub fn conv<T>(image: ArrayView3<T>, kernel: ArrayView3<T>) -> Array3<T>
-where
-    T: Copy + Clone + Num + NumAssignOps,
-{
-    let mut result = Array3::<T>::zeros(image.dim());
-    let k_s = kernel.shape();
-    let row_offset = k_s[0] / 2;
-    let col_offset = k_s[1] / 2;
-
-    Zip::indexed(image.windows(kernel.dim())).apply(|(i, j, _), window| {
-        let mult = &window * &kernel;
-        let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
-        result
-            .slice_mut(s![i + row_offset, j + col_offset, ..])
-            .assign(&sums);
-    });
-    result
 }
 
 #[cfg(test)]
