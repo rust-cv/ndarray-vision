@@ -52,7 +52,7 @@ where
         D: Copy + IntoDimension<Dim = Ix3>,
     {
         // This recommendation was taken from OpenCV 2.4 docs
-        let s = shape.clone().into_dimension();
+        let s = shape.into_dimension();
         let sig = 0.3 * (((std::cmp::max(s[0], 1) - 1) as f64) * 0.5 - 1.0) + 0.8;
         Self::build_with_params(shape, [sig, sig])
     }
@@ -79,7 +79,7 @@ where
 
             temp *= 1.0f64 / sum;
 
-            let temp = temp.mapv(|x| T::from_f64(x));
+            let temp = temp.mapv(T::from_f64);
 
             if temp.iter().any(|x| x.is_none()) {
                 Err(Error::NumericError)

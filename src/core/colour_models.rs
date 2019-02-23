@@ -52,7 +52,7 @@ where
     let tmin = T::min_pixel().to_f64().unwrap_or_else(|| 0.0f64);
 
     let x = x * (tmax - tmin) + tmin;
-    T::from_f64(x).unwrap_or_else(|| T::zero())
+    T::from_f64(x).unwrap_or_else(T::zero)
 }
 
 pub fn rgb_to_hsv<T>(r: T, g: T, b: T) -> (T, T, T)

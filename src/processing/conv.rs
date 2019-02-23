@@ -1,8 +1,8 @@
-use std::marker::PhantomData;
 use crate::core::{ColourModel, Image};
 use ndarray::prelude::*;
 use ndarray::{s, Zip};
 use num_traits::{Num, NumAssignOps};
+use std::marker::PhantomData;
 use std::marker::Sized;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -10,15 +10,20 @@ pub enum Error {
     ChannelDimensionMismatch,
 }
 
-pub trait ConvolutionExt where Self: Sized {
+pub trait ConvolutionExt
+where
+    Self: Sized,
+{
     type Data;
     fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
-    
-    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
 
+    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
 }
 
-impl<T> ConvolutionExt for Array3<T> where T: Copy + Clone + Num + NumAssignOps {
+impl<T> ConvolutionExt for Array3<T>
+where
+    T: Copy + Clone + Num + NumAssignOps,
+{
     type Data = T;
 
     fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
@@ -40,37 +45,36 @@ impl<T> ConvolutionExt for Array3<T> where T: Copy + Clone + Num + NumAssignOps 
             Ok(result)
         }
     }
-    
+
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
         let data = self.conv2d(kernel)?;
-        for (d, v) in self.indexed_iter_mut() { 
-            match data.get(d) {
-                Some(d) => *v = *d,
-                None => {},
+        for (d, v) in self.indexed_iter_mut() {
+            if let Some(d) = data.get(d) {
+                *v = *d;
             }
         }
         Ok(())
     }
 }
 
-
-impl<T, C> ConvolutionExt for Image<T, C> where T: Copy + Clone + Num + NumAssignOps,
-C: ColourModel
+impl<T, C> ConvolutionExt for Image<T, C>
+where
+    T: Copy + Clone + Num + NumAssignOps,
+    C: ColourModel,
 {
     type Data = T;
     fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
         let data = self.data.conv2d(kernel)?;
-        Ok(Self{
-            data: data,
+        Ok(Self {
+            data,
             model: PhantomData,
         })
     }
-    
+
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
         self.data.conv2d_inplace(kernel)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

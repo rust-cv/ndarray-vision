@@ -19,6 +19,12 @@ pub struct PpmEncoder {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct PpmDecoder;
 
+impl Default for PpmEncoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Implements the encoder trait for the PpmEncoder.
 ///
 /// The ColourModel type argument is locked to RGB - this prevents calling
@@ -75,7 +81,7 @@ impl PpmEncoder {
     }
 
     ///! Generate the header string for the image
-    fn generate_header(&self, rows: usize, cols: usize, max_value: u8) -> String {
+    fn generate_header(self, rows: usize, cols: usize, max_value: u8) -> String {
         use EncodingType::*;
         match self.encoding {
             Plaintext => format!("P3\n{} {} {}\n", rows, cols, max_value),
@@ -84,7 +90,7 @@ impl PpmEncoder {
     }
 
     /// Encode the image into the binary PPM format (P6) returning the bytes
-    fn encode_binary<T>(&self, image: &Image<T, RGB>) -> Vec<u8>
+    fn encode_binary<T>(self, image: &Image<T, RGB>) -> Vec<u8>
     where
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
@@ -107,7 +113,7 @@ impl PpmEncoder {
 
     /// Encode the image into the plaintext PPM format (P3) returning the text as
     /// an array of bytes
-    fn encode_plaintext<T>(&self, image: &Image<T, RGB>) -> Vec<u8>
+    fn encode_plaintext<T>(self, image: &Image<T, RGB>) -> Vec<u8>
     where
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
@@ -161,17 +167,15 @@ where
                 ErrorKind::InvalidData,
                 "File is below minimum size of ppm",
             ))
+        } else if bytes.starts_with(b"P3") {
+            Self::decode_plaintext(&bytes[2..])
+        } else if bytes.starts_with(b"P6") {
+            Self::decode_binary(&bytes[2..])
         } else {
-            if bytes.starts_with(b"P3") {
-                Self::decode_plaintext(&bytes[2..])
-            } else if bytes.starts_with(b"P6") {
-                Self::decode_binary(&bytes[2..])
-            } else {
-                Err(Error::new(
-                    ErrorKind::InvalidData,
-                    "File is below minimum size of ppm",
-                ))
-            }
+            Err(Error::new(
+                ErrorKind::InvalidData,
+                "File is below minimum size of ppm",
+            ))
         }
     }
 }
@@ -225,18 +229,14 @@ impl PpmDecoder {
                 } else if WHITESPACE.contains(&b) {
                     last_saw_whitespace = true;
                 }
-                if val_count == 3 && WHITESPACE.contains(&b) {
-                    true
-                } else {
-                    false
-                }
+                val_count == 3 && WHITESPACE.contains(&b)
             })
-            .ok_or_else(|| err())?;
+            .ok_or_else(err)?;
 
         let (rows, cols, max_val) = Self::decode_header(&bytes[0..header_end])?;
         for b in bytes.iter().skip(header_end + 1) {
             let real_pixel = (*b as f64) * (255.0f64 / (max_val as f64));
-            image_bytes.push(T::from_u8(real_pixel as u8).unwrap_or_else(|| T::zero()));
+            image_bytes.push(T::from_u8(real_pixel as u8).unwrap_or_else(T::zero));
         }
         if image_bytes.is_empty() {
             Err(err())
@@ -266,8 +266,8 @@ impl PpmDecoder {
         let mut cols = -1;
         let mut max_val = -1;
         let mut image_bytes = Vec::<T>::new();
-        for line in data.lines().filter(|l| !l.starts_with("#")) {
-            for value in line.split_whitespace().take_while(|x| !x.starts_with("#")) {
+        for line in data.lines().filter(|l| !l.starts_with('#')) {
+            for value in line.split_whitespace().take_while(|x| !x.starts_with('#')) {
                 let temp = value.parse::<isize>().map_err(|_| err())?;
                 if rows < 0 {
                     rows = temp;
@@ -278,7 +278,7 @@ impl PpmDecoder {
                     max_val = temp;
                 } else {
                     let real_pixel = (temp as f64) * (255.0f64 / (max_val as f64));
-                    image_bytes.push(T::from_f64(real_pixel).unwrap_or_else(|| T::zero()));
+                    image_bytes.push(T::from_f64(real_pixel).unwrap_or_else(T::zero));
                 }
             }
         }

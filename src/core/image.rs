@@ -38,7 +38,7 @@ where
     /// Construct the image from a given Array3
     pub fn from_data(data: Array3<T>) -> Self {
         Image {
-            data: data,
+            data,
             model: PhantomData,
         }
     }
@@ -57,13 +57,13 @@ where
             .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));
 
         Image {
-            data: data,
+            data,
             model: PhantomData,
         }
     }
 
     /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2>(&self) -> Image<T2, C>
+    pub fn into_type<T2>(self) -> Image<T2, C>
     where
         T2: Copy
             + Clone
@@ -81,7 +81,7 @@ where
                 * (T2::max_pixel() - T2::min_pixel())
                     .to_f64()
                     .unwrap_or_else(|| 0.0f64);
-            T2::from_f64(scaled).unwrap_or_else(|| T2::zero()) + T2::min_pixel()
+            T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
         };
         let data = self.data.map(rescale);
         Image::<T2, C>::from_data(data)
