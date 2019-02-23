@@ -73,8 +73,7 @@ where
             + NumCast
             + PartialOrd
             + Display
-            + PixelBound
-            + From<T>,
+            + PixelBound,
     {
         let rescale = |x: &T| {
             let scaled = rescale_pixel_value(*x)
