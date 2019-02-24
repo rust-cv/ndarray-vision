@@ -1,10 +1,11 @@
 use crate::core::{ColourModel, Image};
 use ndarray::prelude::*;
 use ndarray::{IntoDimension, Zip};
-use ndarray_stats::interpolate::Nearest;
+use ndarray_stats::interpolate::*;
 use ndarray_stats::Quantile1dExt;
-use num_traits::{FromPrimitive, Num};
+use num_traits::{FromPrimitive, ToPrimitive, Num};
 use std::marker::PhantomData;
+use std::fmt::Debug;
 
 pub trait MedianFilterExt {
     fn median_filter<E>(&self, region: E) -> Self
@@ -14,7 +15,7 @@ pub trait MedianFilterExt {
 
 impl<T> MedianFilterExt for Array3<T>
 where
-    T: Copy + Clone + FromPrimitive + Num + Ord,
+    T: Copy + Clone + FromPrimitive + ToPrimitive + Num + Ord,
 {
     fn median_filter<E>(&self, region: E) -> Self
     where
@@ -27,10 +28,8 @@ where
         let mut result = Array3::<T>::zeros(self.dim());
         Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
-            if let Some(r) = result.get_mut((i + r_offset, j + c_offset, k)) {
-                if let Some(v) = flat_window.quantile_mut::<Nearest>(0.5) {
-                    *r = v;
-                }
+            if let Some(v) = flat_window.quantile_mut::<Linear>(0.5) {
+                result.get_mut([i+r_offset, j+c_offset, k]).map(|r| *r = v);
             }
         });
         result
@@ -39,7 +38,7 @@ where
 
 impl<T, C> MedianFilterExt for Image<T, C>
 where
-    T: Copy + Clone + FromPrimitive + Num + Ord,
+    T: Copy + Clone + FromPrimitive + ToPrimitive + Num + Ord,
     C: ColourModel,
 {
     fn median_filter<E>(&self, region: E) -> Self
@@ -57,7 +56,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::colour_models::RGB;
+    use crate::core::colour_models::{Gray, RGB};
 
     #[test]
     fn simple_median() {
@@ -71,6 +70,18 @@ mod tests {
 
         let mut expected = Image::<u8, RGB>::new(3, 3);
         expected.pixel_mut(1, 1).assign(&arr1(&[4, 5, 6]));
+
+        assert_eq!(image, expected);
+    }
+
+    #[test]
+    fn row_median() {
+        let pixels = vec![1,2,3,4,5,6,7];
+        let image = Image::<_, Gray>::from_shape_data(7, 1, pixels);
+        let image = image.median_filter((3, 1));
+
+        let expected_pixels = vec![0, 2, 3, 4, 5, 6, 0];
+        let expected = Image::<_, Gray>::from_shape_data(7, 1, expected_pixels);
 
         assert_eq!(image, expected);
     }
