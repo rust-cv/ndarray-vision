@@ -320,7 +320,10 @@ impl PpmDecoder {
 mod tests {
     use super::*;
     use crate::core::colour_models::*;
-    use ndarray::arr1;
+    use ndarray::prelude::*;
+    use ndarray_rand::RandomExt;
+    use rand::distributions::Uniform;
+    use std::fs::remove_file;
 
     #[test]
     fn max_value_test() {
@@ -380,5 +383,55 @@ mod tests {
         let restored: Image<u8, RGB> = decoder.decode(&image_bytes).unwrap();
 
         assert_eq!(image, restored);
+    }
+
+    #[test]
+    fn binary_file_save() {
+        let mut image = Image::<u8, RGB>::new(480, 640);
+        let new_data = Array3::<u8>::random(image.data.dim(), Uniform::new(0, 255));
+        image.data = new_data;
+
+        let bin_encoder = PpmEncoder::new();
+
+        let filename = "bintest.ppm";
+
+        bin_encoder.encode_file(&image, filename).unwrap();
+
+        let decoder = PpmDecoder::default();
+        let new_image = decoder.decode_file(filename).unwrap();
+        let _ = remove_file(filename);
+
+        image_compare(&new_image, &image);
+    }
+
+    #[test]
+    fn plaintext_file_save() {
+        let mut image = Image::<u8, RGB>::new(480, 640);
+        let new_data = Array3::<u8>::random(image.data.dim(), Uniform::new(0, 255));
+        image.data = new_data;
+
+        let bin_encoder = PpmEncoder::new_plaintext_encoder();
+        let filename = "texttest.ppm";
+
+        bin_encoder.encode_file(&image, filename).unwrap();
+
+        let decoder = PpmDecoder::default();
+        let new_image = decoder.decode_file(filename).unwrap();
+        let _ = remove_file(filename);
+
+        image_compare(&new_image, &image);
+    }
+
+    fn image_compare<C>(actual: &Image<u8, C>, expected: &Image<u8, C>)
+    where
+        C: ColourModel,
+    {
+        assert_eq!(actual.data.shape(), expected.data.shape());
+
+        for (act, exp) in actual.data.iter().zip(expected.data.iter()) {
+            let delta = (*act as i16 - *exp as i16).abs();
+            // An error of 1 is acceptable on any value due to rounding
+            assert!(delta < 2);
+        }
     }
 }
