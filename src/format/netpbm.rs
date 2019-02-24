@@ -1,4 +1,4 @@
-use crate::core::{Image, PixelBound, RGB, rescale_pixel_value};
+use crate::core::{rescale_pixel_value, Image, PixelBound, RGB};
 use crate::format::{Decoder, Encoder};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
@@ -105,7 +105,7 @@ impl PpmEncoder {
 
         // There is a 70 character line length in PPM using another string to keep track
         for data in image.data.iter() {
-            let value = (rescale_pixel_value(*data)*255.0f64) as u8;
+            let value = (rescale_pixel_value(*data) * 255.0f64) as u8;
             //let value = data.to_u8().unwrap_or_else(|| 0);
             result.push(value);
         }
@@ -131,7 +131,7 @@ impl PpmEncoder {
         temp.reserve(max_margin);
 
         for data in image.data.iter() {
-            let value = (rescale_pixel_value(*data)*255.0f64) as u8;
+            let value = (rescale_pixel_value(*data) * 255.0f64) as u8;
             temp.push_str(&format!("{} ", value));
             if temp.len() > max_margin {
                 result.push_str(&temp);
