@@ -99,14 +99,11 @@ impl PpmEncoder {
         let mut result = self
             .generate_header(image.rows(), image.cols(), max_val)
             .into_bytes();
-        // Not very accurate as a reserve, doesn't factor in max storage for
-        // a pixel or spaces. But somewhere between best and worst case
-        result.reserve(image.rows() * image.cols() * 5);
 
-        // There is a 70 character line length in PPM using another string to keep track
+        result.reserve(result.len() + (image.rows() * image.cols() * 3));
+
         for data in image.data.iter() {
             let value = (rescale_pixel_value(*data) * 255.0f64) as u8;
-            //let value = data.to_u8().unwrap_or_else(|| 0);
             result.push(value);
         }
         result
@@ -265,7 +262,8 @@ impl PpmDecoder {
             let real_pixel = (*b as f64) * (255.0f64 / (max_val as f64));
             image_bytes.push(T::from_u8(real_pixel as u8).unwrap_or_else(T::zero));
         }
-        if image_bytes.is_empty() {
+
+        if image_bytes.is_empty() || image_bytes.len() != (rows * cols * 3) {
             Err(err())
         } else {
             let image = Image::<T, RGB>::from_shape_data(rows, cols, image_bytes);
@@ -309,7 +307,7 @@ impl PpmDecoder {
                 }
             }
         }
-        if image_bytes.is_empty() {
+        if image_bytes.is_empty() || image_bytes.len() != ((rows * cols * 3) as usize) {
             Err(err())
         } else {
             let image = Image::<T, RGB>::from_shape_data(rows as usize, cols as usize, image_bytes);

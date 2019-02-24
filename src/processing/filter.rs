@@ -3,9 +3,8 @@ use ndarray::prelude::*;
 use ndarray::{IntoDimension, Zip};
 use ndarray_stats::interpolate::*;
 use ndarray_stats::Quantile1dExt;
-use num_traits::{FromPrimitive, ToPrimitive, Num};
+use num_traits::{FromPrimitive, Num, ToPrimitive};
 use std::marker::PhantomData;
-use std::fmt::Debug;
 
 pub trait MedianFilterExt {
     fn median_filter<E>(&self, region: E) -> Self
@@ -29,7 +28,9 @@ where
         Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
             if let Some(v) = flat_window.quantile_mut::<Linear>(0.5) {
-                result.get_mut([i+r_offset, j+c_offset, k]).map(|r| *r = v);
+                result
+                    .get_mut([i + r_offset, j + c_offset, k])
+                    .map(|r| *r = v);
             }
         });
         result
@@ -76,7 +77,7 @@ mod tests {
 
     #[test]
     fn row_median() {
-        let pixels = vec![1,2,3,4,5,6,7];
+        let pixels = vec![1, 2, 3, 4, 5, 6, 7];
         let image = Image::<_, Gray>::from_shape_data(7, 1, pixels);
         let image = image.median_filter((3, 1));
 
