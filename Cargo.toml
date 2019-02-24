@@ -12,4 +12,5 @@ edition = "2018"
 
 [dependencies]
 ndarray = "0.12"
+ndarray-stats = "0.1"
 num-traits = "0.2"

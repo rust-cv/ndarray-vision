@@ -1,5 +1,7 @@
 pub mod conv;
-pub mod filters;
+pub mod filter;
+pub mod kernels;
 
 pub use conv::*;
-pub use filters::*;
+pub use filter::*;
+pub use kernels::*;

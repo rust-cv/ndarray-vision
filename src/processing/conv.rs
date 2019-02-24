@@ -95,7 +95,7 @@ mod tests {
         assert_eq!(res, error2);
         assert_eq!(i.data, data_clone);
 
-        let good_kern = Array3::<f64>::zeros((2,2, RGB::channels()));
+        let good_kern = Array3::<f64>::zeros((2, 2, RGB::channels()));
         assert!(i.conv2d(good_kern.view()).is_ok());
         assert!(i.conv2d_inplace(good_kern.view()).is_ok());
     }
