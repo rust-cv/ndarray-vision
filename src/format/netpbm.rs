@@ -187,8 +187,26 @@ impl PpmDecoder {
     /// an io::Error if the header is malformed
     fn decode_header(bytes: &[u8]) -> std::io::Result<(usize, usize, usize)> {
         let err = || Error::new(ErrorKind::InvalidData, "Error in file header");
-        // We don't need the max value for decoding bytes!
-        if let Ok(s) = String::from_utf8(bytes.to_vec()) {
+        let mut keep = true;
+        let bytes = bytes
+            .iter()
+            .filter(|x| {
+                if *x == &b'#' {
+                    keep = false;
+                    false
+                } else if !keep {
+                    if *x == &b'\n' || *x == &b'\r' {
+                        keep = true;
+                    }
+                    false
+                } else {
+                    true
+                }
+            })
+            .map(|x| *x)
+            .collect::<Vec<_>>();
+
+        if let Ok(s) = String::from_utf8(bytes) {
             let res = s
                 .split_whitespace()
                 .map(|x| x.parse::<usize>().unwrap_or(0))
@@ -221,11 +239,18 @@ impl PpmDecoder {
         let mut image_bytes = Vec::<T>::new();
 
         let mut last_saw_whitespace = false;
+        let mut is_comment = false;
         let mut val_count = 0;
         let header_end = bytes
             .iter()
             .position(|&b| {
-                if last_saw_whitespace && !WHITESPACE.contains(&b) {
+                if b == b'#' {
+                    is_comment = true;
+                } else if is_comment {
+                    if b == b'\r' || b == b'\n' {
+                        is_comment = false;
+                    }
+                } else if last_saw_whitespace && !WHITESPACE.contains(&b) {
                     val_count += 1;
                     last_saw_whitespace = false;
                 } else if WHITESPACE.contains(&b) {
@@ -332,6 +357,28 @@ mod tests {
 
         let encoder = PpmEncoder::new_plaintext_encoder();
         let image_bytes = encoder.encode(&image);
+        let restored: Image<u8, RGB> = decoder.decode(&image_bytes).unwrap();
+
+        assert_eq!(image, restored);
+    }
+
+    #[test]
+    fn binary_comments() {
+        let image_str = "P3 
+            3 3 255 
+            255 255 255  0 0 0  255 0 0 
+            0 255 0  0 0 255  255 255 0
+            0 255 255  127 127 127  0 0 0";
+
+        let decoder = PpmDecoder::default();
+        let image: Image<u8, RGB> = decoder.decode(image_str.as_bytes()).unwrap();
+
+        let encoder = PpmEncoder::new();
+        let mut image_bytes = encoder.encode(&image);
+        let comment = b"# This is a comment\n";
+        for i in 0..comment.len() {
+            image_bytes.insert(2 + i, comment[i]);
+        }
         let restored: Image<u8, RGB> = decoder.decode(&image_bytes).unwrap();
 
         assert_eq!(image, restored);
