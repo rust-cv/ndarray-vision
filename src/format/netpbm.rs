@@ -1,4 +1,4 @@
-use crate::core::{rescale_pixel_value, Image, PixelBound, RGB};
+use crate::core::{normalise_pixel_value, Image, PixelBound, RGB};
 use crate::format::{Decoder, Encoder};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
@@ -103,7 +103,7 @@ impl PpmEncoder {
         result.reserve(result.len() + (image.rows() * image.cols() * 3));
 
         for data in image.data.iter() {
-            let value = (rescale_pixel_value(*data) * 255.0f64) as u8;
+            let value = (normalise_pixel_value(*data) * 255.0f64) as u8;
             result.push(value);
         }
         result
@@ -128,7 +128,7 @@ impl PpmEncoder {
         temp.reserve(max_margin);
 
         for data in image.data.iter() {
-            let value = (rescale_pixel_value(*data) * 255.0f64) as u8;
+            let value = (normalise_pixel_value(*data) * 255.0f64) as u8;
             temp.push_str(&format!("{} ", value));
             if temp.len() > max_margin {
                 result.push_str(&temp);

@@ -76,7 +76,7 @@ where
             + PixelBound,
     {
         let rescale = |x: &T| {
-            let scaled = rescale_pixel_value(*x)
+            let scaled = normalise_pixel_value(*x)
                 * (T2::max_pixel() - T2::min_pixel())
                     .to_f64()
                     .unwrap_or_else(|| 0.0f64);
@@ -118,7 +118,7 @@ where
 
 /// Returns a normalised pixel value or 0 if it can't convert the types.
 /// This should never fail if your types are good.
-pub fn rescale_pixel_value<T>(t: T) -> f64
+pub fn normalise_pixel_value<T>(t: T) -> f64
 where
     T: PixelBound + Num + NumCast,
 {
