@@ -1,6 +1,6 @@
 use crate::core::traits::*;
 use crate::core::{normalise_pixel_value, Image};
-use ndarray::{arr1, s, Array3, Zip};
+use ndarray::{prelude::*, s, Zip};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::convert::From;
@@ -8,6 +8,7 @@ use std::fmt::Display;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Gray;
+/// RGB colour as intended by sRGB and standardised in IEC 61966-2-1:1999
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct RGB;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -20,6 +21,7 @@ pub struct HSI;
 pub struct HSL;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct YCrCb;
+/// CIE XYZ standard - assuming a D50 reference white
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CIEXYZ;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -43,6 +45,27 @@ pub trait ColourModel {
         3
     }
 }
+
+impl RGB {
+    /// Remove the gamma from a normalised channel
+    pub fn remove_gamma(v: f64) -> f64 {
+        if v < 0.04045 {
+            v/12.92
+        } else {
+            ((v+0.055)/1.055).powf(2.4)
+        }
+    }
+
+    /// Apply the gamma to a normalised channel
+    pub fn apply_gamma(v: f64) -> f64 {
+        if v < 0.0031308 {
+            v * 12.92
+        } else {
+            1.055*v.powf(1.0/2.4) - 0.055
+        }
+    }
+}
+
 
 fn rescale_pixel<T>(x: f64) -> T
 where
@@ -216,7 +239,6 @@ where
             let b = normalise_pixel_value(pix[[0, 0, 2]]);
 
             let gray = (0.3 * r) + (0.59 * g) + (0.11 * b);
-            println!("Gray is {}", gray);
             let gray = rescale_pixel(gray);
 
             res.slice_mut(s![i, j, ..]).assign(&arr1(&[gray]));
@@ -250,6 +272,79 @@ where
         Self::from_data(res)
     }
 }
+
+impl<T> From<Image<T, RGB>> for Image<T, CIEXYZ>
+where
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+{
+    fn from(image: Image<T, RGB>) -> Self {
+        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), CIEXYZ::channels()));
+        let window = image.data.windows((1, 1, image.channels()));
+
+        let m = arr2(&[[0.4360747, 0.3850649, 0.1430804],
+                     [0.2225045, 0.7168786, 0.0606169],
+                     [0.0139322, 0.0971045, 0.7141733]]);
+        
+        Zip::indexed(window).apply(|(i, j, _), pix| {
+            let pixel = pix.index_axis(Axis(0), 0)
+                           .index_axis(Axis(0), 0)
+                           .mapv(normalise_pixel_value)
+                           .mapv(RGB::remove_gamma);
+            
+            let pixel = m.dot(&pixel);
+            let pixel = pixel.mapv(rescale_pixel);
+
+            res.slice_mut(s![i, j, ..])
+                .assign(&pixel);
+        });
+        Self::from_data(res)
+    }
+}
+
+impl<T> From<Image<T, CIEXYZ>> for Image<T, RGB>
+where
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+{
+    fn from(image: Image<T, CIEXYZ>) -> Self {
+        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
+        let window = image.data.windows((1, 1, image.channels()));
+
+        let m = arr2(&[[3.1338561, -1.6168667, -0.4906146],
+                     [-0.9787684, 1.9161415, 0.0334540],
+                     [0.0719453, -0.2289914, 1.4052427]]);
+
+        Zip::indexed(window).apply(|(i, j, _), pix| {
+            let pixel = pix.index_axis(Axis(0), 0)
+                           .index_axis(Axis(0), 0)
+                           .mapv(normalise_pixel_value);
+
+            let pixel = m.dot(&pixel);
+
+            let pixel = pixel.mapv(RGB::apply_gamma).mapv(rescale_pixel);
+
+            res.slice_mut(s![i, j, ..])
+                .assign(&pixel);
+        });
+        Self::from_data(res)
+    }
+}
+
 
 impl ColourModel for RGB {}
 impl ColourModel for HSV {}
@@ -302,7 +397,8 @@ impl ColourModel for RGBA {
 mod tests {
     use super::*;
     use ndarray::s;
-    use ndarray_rand::RandomExt;
+    use ndarray_stats::QuantileExt;
+    use ndarray_rand::{RandomExt, F32};
     use rand::distributions::Uniform;
 
     #[test]
@@ -349,6 +445,24 @@ mod tests {
             let delta = (*act as i16 - *exp as i16).abs();
             assert!(delta < 2);
         }
+    }
+
+    #[test]
+    fn basic_xyz_rgb_checks() {
+        let mut image = Image::<f32, RGB>::new(100, 100);
+        let new_data = Array3::<f32>::random(image.data.dim(), F32(Uniform::new(0.0, 1.0)));
+        image.data = new_data;
+
+        let xyz = Image::<f32, CIEXYZ>::from(image.clone());
+
+        let rgb_restored = Image::<f32, RGB>::from(xyz);
+
+        let mut delta = image.data - rgb_restored.data;
+        delta.mapv_inplace(|x| x.abs());
+
+        // 0.5% error in RGB -> XYZ -> RGB
+        assert!(*delta.max().unwrap()*100.0 < 0.5);
+
     }
 
 }
