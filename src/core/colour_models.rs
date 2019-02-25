@@ -97,9 +97,9 @@ where
     let cmin = r_norm.min(g_norm.min(b_norm));
     let delta = cmax - cmin;
 
-    let s = if cmax > 0.0f64 { delta / cmax } else { 0.0f64 };
+    let sat = if cmax > 0.0f64 { delta / cmax } else { 0.0f64 };
 
-    let h = if delta < std::f64::EPSILON {
+    let hue = if delta < std::f64::EPSILON {
         0.0 // hue is undefined for full black full white
     } else if cmax <= r_norm {
         60.0 * (((g_norm - b_norm) / delta) % 6.0)
@@ -108,13 +108,13 @@ where
     } else {
         60.0 * ((r_norm - g_norm) / delta + 4.0)
     };
-    let h = h / 360.0f64;
+    let hue = hue / 360.0f64;
 
-    let h = rescale_pixel(h);
-    let s = rescale_pixel(s);
-    let v = rescale_pixel(cmax);
+    let hue = rescale_pixel(hue);
+    let sat = rescale_pixel(sat);
+    let val = rescale_pixel(cmax);
 
-    (h, s, v)
+    (hue, sat, val)
 }
 
 pub fn hsv_to_rgb<T>(h: T, s: T, v: T) -> (T, T, T)
@@ -153,11 +153,11 @@ where
         (0.0f64, 0.0f64, 0.0f64)
     };
 
-    let r = rescale_pixel(rgb.0 + m);
-    let g = rescale_pixel(rgb.1 + m);
-    let b = rescale_pixel(rgb.2 + m);
+    let red = rescale_pixel(rgb.0 + m);
+    let green = rescale_pixel(rgb.1 + m);
+    let blue = rescale_pixel(rgb.2 + m);
 
-    (r, g, b)
+    (red, green, blue)
 }
 
 impl<T> From<Image<T, RGB>> for Image<T, HSV>
@@ -177,12 +177,12 @@ where
         let window = image.data.windows((1, 1, image.channels()));
 
         Zip::indexed(window).apply(|(i, j, _), pix| {
-            let r = pix[[0, 0, 0]];
-            let g = pix[[0, 0, 1]];
-            let b = pix[[0, 0, 2]];
+            let red = pix[[0, 0, 0]];
+            let green = pix[[0, 0, 1]];
+            let blue = pix[[0, 0, 2]];
 
-            let (h, s, v) = rgb_to_hsv(r, g, b);
-            res.slice_mut(s![i, j, ..]).assign(&arr1(&[h, s, v]));
+            let (hue, sat, val) = rgb_to_hsv(red, green, blue);
+            res.slice_mut(s![i, j, ..]).assign(&arr1(&[hue, sat, val]));
         });
         Self::from_data(res)
     }

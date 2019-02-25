@@ -200,7 +200,7 @@ impl PpmDecoder {
                     true
                 }
             })
-            .map(|x| *x)
+            .cloned()
             .collect::<Vec<_>>();
 
         if let Ok(s) = String::from_utf8(bytes) {

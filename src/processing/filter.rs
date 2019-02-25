@@ -48,7 +48,7 @@ where
     {
         let data = self.data.median_filter(region);
         Image {
-            data: data,
+            data,
             model: PhantomData,
         }
     }
