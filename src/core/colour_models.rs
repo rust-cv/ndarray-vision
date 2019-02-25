@@ -1,5 +1,5 @@
 use crate::core::traits::*;
-use crate::core::{rescale_pixel_value, Image};
+use crate::core::{normalise_pixel_value, Image};
 use ndarray::{arr1, s, Array3, Zip};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
@@ -52,6 +52,7 @@ where
     let tmin = T::min_pixel().to_f64().unwrap_or_else(|| 0.0f64);
 
     let x = x * (tmax - tmin) + tmin;
+
     T::from_f64(x).unwrap_or_else(T::zero)
 }
 
@@ -67,9 +68,9 @@ where
         + Display
         + PixelBound,
 {
-    let r_norm = rescale_pixel_value(r);
-    let g_norm = rescale_pixel_value(g);
-    let b_norm = rescale_pixel_value(b);
+    let r_norm = normalise_pixel_value(r);
+    let g_norm = normalise_pixel_value(g);
+    let b_norm = normalise_pixel_value(b);
     let cmax = r_norm.max(g_norm.max(b_norm));
     let cmin = r_norm.min(g_norm.min(b_norm));
     let delta = cmax - cmin;
@@ -106,9 +107,9 @@ where
         + Display
         + PixelBound,
 {
-    let h_deg = rescale_pixel_value(h) * 360.0f64;
-    let s_norm = rescale_pixel_value(s);
-    let v_norm = rescale_pixel_value(v);
+    let h_deg = normalise_pixel_value(h) * 360.0f64;
+    let s_norm = normalise_pixel_value(s);
+    let v_norm = normalise_pixel_value(v);
 
     let c = v_norm * s_norm;
     let x = c * (1.0f64 - ((h_deg / 60.0f64) % 2.0f64 - 1.0f64).abs());
@@ -193,6 +194,63 @@ where
     }
 }
 
+impl<T> From<Image<T, RGB>> for Image<T, Gray>
+where
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+{
+    fn from(image: Image<T, RGB>) -> Self {
+        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), Gray::channels()));
+        let window = image.data.windows((1, 1, image.channels()));
+
+        Zip::indexed(window).apply(|(i, j, _), pix| {
+            let r = normalise_pixel_value(pix[[0, 0, 0]]);
+            let g = normalise_pixel_value(pix[[0, 0, 1]]);
+            let b = normalise_pixel_value(pix[[0, 0, 2]]);
+
+            let gray = (0.3 * r) + (0.59 * g) + (0.11 * b);
+            println!("Gray is {}", gray);
+            let gray = rescale_pixel(gray);
+
+            res.slice_mut(s![i, j, ..]).assign(&arr1(&[gray]));
+        });
+        Self::from_data(res)
+    }
+}
+
+impl<T> From<Image<T, Gray>> for Image<T, RGB>
+where
+    T: Copy
+        + Clone
+        + FromPrimitive
+        + Num
+        + NumAssignOps
+        + NumCast
+        + PartialOrd
+        + Display
+        + PixelBound,
+{
+    fn from(image: Image<T, Gray>) -> Self {
+        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
+        let window = image.data.windows((1, 1, image.channels()));
+
+        Zip::indexed(window).apply(|(i, j, _), pix| {
+            let gray = pix[[0, 0, 0]];
+
+            res.slice_mut(s![i, j, ..])
+                .assign(&arr1(&[gray, gray, gray]));
+        });
+        Self::from_data(res)
+    }
+}
+
 impl ColourModel for RGB {}
 impl ColourModel for HSV {}
 impl ColourModel for HSI {}
@@ -243,6 +301,9 @@ impl ColourModel for RGBA {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ndarray::s;
+    use ndarray_rand::RandomExt;
+    use rand::distributions::Uniform;
 
     #[test]
     fn basic_rgb_hsv_check() {
@@ -257,6 +318,37 @@ mod tests {
 
         let rgb = Image::<u8, RGB>::from(hsv);
         assert_eq!(i, rgb);
+    }
+
+    #[test]
+    fn gray_to_rgb_test() {
+        let mut image = Image::<u8, Gray>::new(480, 640);
+        let new_data = Array3::<u8>::random(image.data.dim(), Uniform::new(0, 255));
+        image.data = new_data;
+
+        let rgb = Image::<u8, RGB>::from(image.clone());
+        let slice_2d = image.data.slice(s![.., .., 0]);
+
+        assert_eq!(slice_2d, rgb.data.slice(s![.., .., 0]));
+        assert_eq!(slice_2d, rgb.data.slice(s![.., .., 1]));
+        assert_eq!(slice_2d, rgb.data.slice(s![.., .., 2]));
+    }
+
+    #[test]
+    fn rgb_to_gray_basic() {
+        // Check white, black, red, green, blue
+        let data = vec![255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255];
+        let image = Image::<u8, RGB>::from_shape_data(1, 5, data);
+
+        let gray = Image::<u8, Gray>::from(image);
+
+        // take standard 0.3 0.59 0.11 values and assume truncation
+        let expected = vec![255, 0, 77, 150, 28];
+
+        for (act, exp) in gray.data.iter().zip(expected.iter()) {
+            let delta = (*act as i16 - *exp as i16).abs();
+            assert!(delta < 2);
+        }
     }
 
 }
