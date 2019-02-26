@@ -31,3 +31,5 @@ pub mod core;
 pub mod format;
 /// Image processing intrinsics and common filters/algorithms.
 pub mod processing;
+/// Image enhancement intrinsics and algorithms
+pub mod enhancement;
