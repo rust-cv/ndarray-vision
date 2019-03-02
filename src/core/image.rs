@@ -35,14 +35,6 @@ where
         + PixelBound,
     C: ColourModel,
 {
-    /// Construct the image from a given Array3
-    pub fn from_data(data: Array3<T>) -> Self {
-        Image {
-            data,
-            model: PhantomData,
-        }
-    }
-
     /// Construct a new image filled with zeros using the given dimensions and
     /// a colour model
     pub fn new(rows: usize, columns: usize) -> Self {
@@ -101,6 +93,13 @@ impl<T, C> Image<T, C>
 where
     C: ColourModel,
 {
+    /// Construct the image from a given Array3
+    pub fn from_data(data: Array3<T>) -> Self {
+        Image {
+            data,
+            model: PhantomData,
+        }
+    }
     /// Returns the number of rows in an image
     pub fn rows(&self) -> usize {
         self.data.shape()[0]
