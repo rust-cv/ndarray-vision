@@ -1,7 +1,7 @@
 use core::ops::Neg;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
-use num_traits::{cast::FromPrimitive, float::Float, Num, NumOps, NumAssignOps, sign::Signed};
+use num_traits::{cast::FromPrimitive, float::Float, sign::Signed, Num, NumAssignOps, NumOps};
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Error {
@@ -41,13 +41,13 @@ pub struct LaplaceFilter;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LaplaceType {
-    Standard, 
+    Standard,
     Diagonal,
 }
 
 impl<T> FixedDimensionKernelBuilder<T> for LaplaceFilter
 where
-    T: Copy + Clone + Num + NumOps + Signed + FromPrimitive
+    T: Copy + Clone + Num + NumOps + Signed + FromPrimitive,
 {
     type Params = LaplaceType;
 
@@ -63,18 +63,16 @@ where
                 let z = T::zero();
 
                 arr2(&[[z, m_1, z], [m_1, p_4, m_1], [z, m_1, z]])
-            }, 
+            }
             LaplaceType::Diagonal => {
                 let m_1 = -T::one();
                 let p_8 = T::from_u8(8).ok_or_else(|| Error::NumericError)?;
 
                 arr2(&[[m_1, m_1, m_1], [m_1, p_8, m_1], [m_1, m_1, m_1]])
-
-            },
+            }
         };
         Ok(res.insert_axis(Axis(2)))
     }
-    
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
@@ -276,9 +274,15 @@ mod tests {
     #[test]
     fn test_laplace_filters() {
         let standard = LaplaceFilter::build().unwrap();
-        assert_eq!(standard, arr3(&[[[0],[-1],[0]],[[-1],[4],[-1]],[[0],[-1],[0]]]));
+        assert_eq!(
+            standard,
+            arr3(&[[[0], [-1], [0]], [[-1], [4], [-1]], [[0], [-1], [0]]])
+        );
 
         let standard = LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
-        assert_eq!(standard, arr3(&[[[-1],[-1],[-1]],[[-1],[8],[-1]],[[-1],[-1],[-1]]]));
+        assert_eq!(
+            standard,
+            arr3(&[[[-1], [-1], [-1]], [[-1], [8], [-1]], [[-1], [-1], [-1]]])
+        );
     }
 }
