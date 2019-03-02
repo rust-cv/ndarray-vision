@@ -348,6 +348,127 @@ where
     }
 }
 
+
+impl<T> From<Image<T, Generic3>> for Image<T, RGB> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, HSV> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, HSI> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, HSL> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, YCrCb> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, CIEXYZ> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, CIELAB> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic3>> for Image<T, CIELUV> {
+    fn from(image: Image<T, Generic3>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic1>> for Image<T, Gray> {
+    fn from(image: Image<T, Generic1>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Generic4>> for Image<T, RGBA> {
+    fn from(image: Image<T, Generic4>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, RGB>> for Image<T, Generic3> {
+    fn from(image: Image<T, RGB>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, HSV>> for Image<T, Generic3> {
+    fn from(image: Image<T, HSV>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, HSI>> for Image<T, Generic3> {
+    fn from(image: Image<T, HSI>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, HSL>> for Image<T, Generic3> {
+    fn from(image: Image<T, HSL>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, YCrCb>> for Image<T, Generic3> {
+    fn from(image: Image<T, YCrCb>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, CIEXYZ>> for Image<T, Generic3> {
+    fn from(image: Image<T, CIEXYZ>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, CIELAB>> for Image<T, Generic3> {
+    fn from(image: Image<T, CIELAB>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, CIELUV>> for Image<T, Generic3> {
+    fn from(image: Image<T, CIELUV>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, RGBA>> for Image<T, Generic4> {
+    fn from(image: Image<T, RGBA>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
+impl<T> From<Image<T, Gray>> for Image<T, Generic1> {
+    fn from(image: Image<T, Gray>) -> Self {
+        Self::from_data(image.data)
+    }
+}
+
 impl ColourModel for RGB {}
 impl ColourModel for HSV {}
 impl ColourModel for HSI {}
