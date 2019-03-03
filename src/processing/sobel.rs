@@ -14,7 +14,7 @@ where
     fn apply_sobel(&self) -> Result<Self, Error>;
     
     /// Returns the magntitude and rotation outputs for use in other algorithms
-    /// like the Canny edge detector
+    /// like the Canny edge detector. Rotation is in radians
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
 }
 

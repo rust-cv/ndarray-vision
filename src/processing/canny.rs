@@ -1,24 +1,12 @@
-use crate::processing::kernels::*;
+use crate::processing::*;
 use ndarray::IntoDimension;
 use ndarray::prelude::*;
-use num_traits::{Num, real::Real, cast::FromPrimitive};
+use num_traits::{Num, NumAssignOps, real::Real, cast::FromPrimitive};
 
 pub trait CannyEdgeDetectorExt<T> {
     type Output;
 
-   fn canny_edge_detector(params: CannyParameters<T>) -> Self::Output;
-}
-
-
-impl<T> CannyEdgeDetectorExt<T> for Array3<T> 
-where 
-    T: Copy + Clone + FromPrimitive + Real + Num
-{
-    type Output = Array3<bool>;
-
-   fn canny_edge_detector(params: CannyParameters<T>) -> Self::Output {
-        unimplemented!()
-   }
+   fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error>;
 }
 
 
@@ -36,6 +24,49 @@ pub struct CannyParameters<T> {
     t2: T,
 }
 
+
+impl<T> CannyEdgeDetectorExt<T> for Array3<T> 
+where 
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+{
+    type Output = Array3<bool>;
+
+    fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error> {
+        let t1 = params.t1;
+        let t2 = params.t2;
+        // First check blur is right width and if not expand
+        let blur = if params.blur.shape()[2] == self.shape()[2] {
+            params.blur
+        } else if params.blur.shape()[2] == 1 {
+            Array::from_shape_fn(params.blur.dim(), |(i, j, _)| params.blur[[i, j, 0]])
+        } else {
+            return Err(Error::ChannelDimensionMismatch);   
+        };
+        // apply blur 
+        let blurred = self.conv2d(blur.view())?; 
+        let (mut mag, rot) = blurred.full_sobel()?;
+        mag.mapv_inplace(|x| if x >= t1 { x  } else { T::zero() });
+        
+        non_maxima_supression(mag.view_mut(), rot.view());
+        
+        Ok(link_edges(mag, t1, t2))
+    }
+}
+
+
+fn non_maxima_supression<T>(magnitudes: ArrayViewMut3<T>, rotations: ArrayView3<T>) 
+where 
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+{
+    unimplemented!()
+}
+
+fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool> 
+where 
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+{
+    unimplemented!()
+}
 
 impl<T> CannyBuilder<T>
 where
@@ -77,14 +108,19 @@ where
             Some(b) => b,
             None => GaussianFilter::build_with_params((5, 5, 1), [2.0, 2.0]).unwrap(),
         };
-        let t1 = match self.t1 {
+        let mut t1 = match self.t1 {
             Some(t) => t,
             None => T::from_f64(0.3).unwrap(),
         };
-        let t2 = match self.t2 {
+        let mut t2 = match self.t2 {
             Some(t) => t,
             None => T::from_f64(0.7).unwrap(),
         };
+        if t2 < t1 {
+            let temp = t1;
+            t1 = t2;
+            t2 = temp;
+        }
         CannyParameters {
             blur,
             t1,
