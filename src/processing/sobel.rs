@@ -48,6 +48,10 @@ where
 
         let mut result = h_deriv + v_deriv;
         result.mapv_inplace(|x| x.sqrt());
+        
+        // squash values above 1.0
+        result.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
+
         Ok(result)
     }
     
@@ -56,6 +60,7 @@ where
 
         let mut magnitude = h_deriv.mapv(|x| x.powi(2)) + v_deriv.mapv(|x| x.powi(2));
         magnitude.mapv_inplace(|x| x.sqrt());
+        magnitude.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
 
         let mut rotation = v_deriv/h_deriv;
         rotation.mapv_inplace(|x| x.atan());
