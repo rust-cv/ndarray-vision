@@ -32,39 +32,81 @@ where
     type Output = Array3<bool>;
 
     fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error> {
-        let t1 = params.t1;
-        let t2 = params.t2;
-        // First check blur is right width and if not expand
-        let blur = if params.blur.shape()[2] == self.shape()[2] {
-            params.blur
-        } else if params.blur.shape()[2] == 1 {
-            Array::from_shape_fn(params.blur.dim(), |(i, j, _)| params.blur[[i, j, 0]])
+        if self.shape()[2] > 1 {
+            Err(Error::ChannelDimensionMismatch) 
         } else {
-            return Err(Error::ChannelDimensionMismatch);   
-        };
-        // apply blur 
-        let blurred = self.conv2d(blur.view())?; 
-        let (mut mag, rot) = blurred.full_sobel()?;
-        mag.mapv_inplace(|x| if x >= t1 { x  } else { T::zero() });
-        
-        non_maxima_supression(mag.view_mut(), rot.view());
-        
-        Ok(link_edges(mag, t1, t2))
+            let t1 = params.t1;
+            let t2 = params.t2;
+            // apply blur 
+            let blurred = self.conv2d(params.blur.view())?; 
+            let (mut mag, rot) = blurred.full_sobel()?;
+            mag.mapv_inplace(|x| if x >= t1 { x  } else { T::zero() });
+            
+            let mag = non_maxima_supression(mag, rot.view());
+            
+            Ok(link_edges(mag, t2))
+        }
     }
 }
 
 
-fn non_maxima_supression<T>(magnitudes: ArrayViewMut3<T>, rotations: ArrayView3<T>) 
+fn non_maxima_supression<T>(magnitudes: Array3<T>, rotations: ArrayView3<T>) -> Array3<T> 
 where 
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
 {
-    unimplemented!()
+    let row_size = magnitudes.shape()[0] as isize;
+    let column_size = magnitudes.shape()[1] as isize;
+
+    let get_neighbours = |r, c, dr, dc| {
+        if (r == 0 && dr < 0) || (r==(row_size-1) && dr > 0) {
+            T::zero()
+        } else if (c==0 && dc < 0) || (c==(column_size-1) && dr > 0) {
+            T::zero()
+        } else {
+            magnitudes[[(r+dr) as usize, (c+dc) as usize, 0]]
+        }
+    };
+
+    let mut result = magnitudes.clone();
+
+    for (i, mut row) in result.outer_iter_mut().enumerate() {
+        let i = i as isize;
+        for (j, mut col) in row.outer_iter_mut().enumerate() {
+            let  mut dir = rotations[[i as usize, j, 0]]
+                .to_degrees()
+                .to_f64()
+                .unwrap_or_else(|| 0.0);
+
+            let j = j as isize;
+            if dir >= 180.0 {
+                dir -= 180.0;
+            } else if dir < 0.0 {
+                dir += 180.0;
+            }
+            // Now get neighbour values and suppress col if not a maxima
+            let (a ,b) = if dir < 45.0 {
+                (get_neighbours(i, j, 0, -1), get_neighbours(i, j, 0, 1))
+            } else if dir < 90.0 {
+                (get_neighbours(i, j, -1, -1), get_neighbours(i, j, 1, 1))
+            } else if dir < 135.0 {
+                (get_neighbours(i, j, -1, 0), get_neighbours(i, j, 1, 0))
+            } else {
+                (get_neighbours(i, j, -1, 1), get_neighbours(i, j, 1, -1))
+            };
+
+            if a > col[[0]] || b > col[[0]] {
+                col.fill(T::zero());
+            }
+        }
+    }
+    result
 }
 
-fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool> 
+fn link_edges<T>(magnitudes: Array3<T>, upper: T) -> Array3<bool> 
 where 
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
 {
+    let strong_edges = magnitudes.mapv(|x| if x >= upper { x } else { T::zero() });
     unimplemented!()
 }
 
@@ -90,8 +132,10 @@ where
 
     pub fn blur<D>(self, shape: D, covariance: [f64;2]) -> Self 
     where
-        D: Copy + IntoDimension<Dim = Ix3>,
+        D: Copy + IntoDimension<Dim = Ix2>,
     {
+        let shape = shape.into_dimension();
+        let shape = (shape[0], shape[1], 1);
         if let Ok(blur) = GaussianFilter::build_with_params(shape, covariance) {
             Self {
                 blur: Some(blur),
