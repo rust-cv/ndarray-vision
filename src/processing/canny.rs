@@ -2,6 +2,8 @@ use crate::processing::*;
 use ndarray::IntoDimension;
 use ndarray::prelude::*;
 use num_traits::{Num, NumAssignOps, real::Real, cast::FromPrimitive};
+use std::collections::HashSet;
+
 
 pub trait CannyEdgeDetectorExt<T> {
     type Output;
@@ -35,16 +37,13 @@ where
         if self.shape()[2] > 1 {
             Err(Error::ChannelDimensionMismatch) 
         } else {
-            let t1 = params.t1;
-            let t2 = params.t2;
             // apply blur 
             let blurred = self.conv2d(params.blur.view())?; 
-            let (mut mag, rot) = blurred.full_sobel()?;
-            mag.mapv_inplace(|x| if x >= t1 { x  } else { T::zero() });
+            let (mag, rot) = blurred.full_sobel()?;
             
             let mag = non_maxima_supression(mag, rot.view());
             
-            Ok(link_edges(mag, t1, t2))
+            Ok(link_edges(mag, params.t1, params.t2))
         }
     }
 }
@@ -60,7 +59,7 @@ where
     let get_neighbours = |r, c, dr, dc| {
         if (r == 0 && dr < 0) || (r==(row_size-1) && dr > 0) {
             T::zero()
-        } else if (c==0 && dc < 0) || (c==(column_size-1) && dr > 0) {
+        } else if (c==0 && dc < 0) || (c==(column_size-1) && dc > 0) {
             T::zero()
         } else {
             magnitudes[[(r+dr) as usize, (c+dc) as usize, 0]]
@@ -102,46 +101,70 @@ where
     result
 }
 
+fn get_candidates(coord: (usize, usize),
+                  bounds: (usize, usize),
+                  closed_set: &HashSet<[usize; 2]>) -> Vec<[usize; 2]> {
+
+    let mut result = Vec::new();
+    let (r, c) = coord;
+    let (rows, cols) = bounds;
+
+    if r > 0 {
+        if c > 0 && !closed_set.contains(&[r-1, c+1]) {
+            result.push([r-1, c-1]);
+        }
+        if c < cols - 1 && !closed_set.contains(&[r-1, c+1]) {
+            result.push([r-1, c+1]);
+        }
+        if !closed_set.contains(&[r-1, c]) {
+            result.push([r-1, c]);
+        }
+    }
+    if r < rows - 1 {
+        if c > 0 && !closed_set.contains(&[r+1, c-1]) {
+            result.push([r+1, c-1]);
+        }
+        if c < cols - 1 && !closed_set.contains(&[r+1, c+1]) {
+            result.push([r+1, c+1]);
+        }
+        if !closed_set.contains(&[r+1, c]) {
+            result.push([r+1, c]);
+        }
+    }
+    result
+}
+
 fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool> 
 where 
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
 {
+    let magnitudes = magnitudes.mapv(|x| if x >= lower { x } else { T::zero() });
     let mut result = magnitudes.mapv(|x| x >= upper);
+    let mut visited = HashSet::new();
+    
     let rows = result.shape()[0];
     let cols = result.shape()[1];
-    
+
     for r in 0..rows {
         for c in 0..cols {
             // If it is a strong edge check if neighbours are weak and add them
             if result[[r, c, 0]]  {
-                if r > 0 && magnitudes[[r-1, c, 0]] >= lower {
-                    result[[r-1, c, 0]] = true;
-                    if c > 0 && magnitudes[[r-1, c-1, 0]] >= lower {
-                        result[[r-1, c-1, 0]] = true;
+                visited.insert([r,c]);
+                let mut buffer = get_candidates((r, c), (rows, cols), &visited);
+
+                while let Some(cand) = buffer.pop() {
+                    let coord3 = [cand[0], cand[1], 0];
+                    if magnitudes[coord3] > lower {
+                        visited.insert(cand);
+                        result[coord3] = true;
+                        
+                        let temp = get_candidates((cand[0], cand[1]), (rows, cols), &visited);
+                        buffer.extend_from_slice(temp.as_slice());
                     }
-                    if c < cols -1 && magnitudes[[r-1, c+1, 0]] >= lower {
-                        result[[r-1, c+1, 0]] = true;
-                    }
-                }
-                if r < rows -1 && magnitudes[[r+1, c, 0]] >= lower {
-                    result[[r+1, c, 0]] = true;
-                    if c > 0 && magnitudes[[r+1, c-1, 0]] >= lower {
-                        result[[r+1, c-1, 0]] = true;
-                    }
-                    if c < cols -1 && magnitudes[[r+1, c+1, 0]] >= lower {
-                        result[[r+1, c+1, 0]] = true;
-                    }
-                }
-                if c > 0 && magnitudes[[r, c-1, 0]] >= lower {
-                    result[[r, c-1, 0]] = true;
-                }
-                if c < cols -1 && magnitudes[[r, c+1, 0]] >= lower {
-                    result[[r, c+1, 0]] = true;
                 }
             }   
         }
     }
-
     result
 }
 
@@ -149,6 +172,14 @@ impl<T> CannyBuilder<T>
 where
     T: Copy + Clone + FromPrimitive + Real + Num
 {
+    pub fn new() -> Self {
+        Self {
+            blur: None,
+            t1: None,
+            t2: None,
+        }
+    }
+
     pub fn lower_threshold(self, t1: T) -> Self {
         Self {
             blur: self.blur,
