@@ -1,14 +1,11 @@
 use crate::core::{ColourModel, Image};
+use crate::processing::Error;
 use ndarray::prelude::*;
 use ndarray::{s, Zip};
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
-pub enum Error {
-    ChannelDimensionMismatch,
-}
 
 pub trait ConvolutionExt
 where

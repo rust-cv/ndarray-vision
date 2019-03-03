@@ -11,14 +11,14 @@ where
 {
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
-    fn apply_sobel(&self) -> Result<Self, conv::Error>;
+    fn apply_sobel(&self) -> Result<Self, Error>;
     
     /// Returns the magntitude and rotation outputs for use in other algorithms
     /// like the Canny edge detector
-    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), conv::Error>;
+    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
 }
 
-fn get_edge_images<T>(mat: &Array3<T>) -> Result<(Array3<T>, Array3<T>), conv::Error>
+fn get_edge_images<T>(mat: &Array3<T>) -> Result<(Array3<T>, Array3<T>), Error>
 where
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
@@ -40,7 +40,7 @@ where
 {
     type Output = Self;
 
-    fn apply_sobel(&self) -> Result<Self, conv::Error> {
+    fn apply_sobel(&self) -> Result<Self, Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
         let h_deriv = h_deriv.mapv(|x| x.powi(2));
@@ -51,7 +51,7 @@ where
         Ok(result)
     }
     
-    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), conv::Error> {
+    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
         let mut magnitude = h_deriv.mapv(|x| x.powi(2)) + v_deriv.mapv(|x| x.powi(2));
@@ -71,12 +71,12 @@ where
 {
     type Output = Array3<T>;
 
-    fn apply_sobel(&self) -> Result<Self, conv::Error> {
+    fn apply_sobel(&self) -> Result<Self, Error> {
         let data = self.data.apply_sobel()?;
         Ok(Image::from_data(data))
     }
     
-    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), conv::Error> {
+    fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         self.data.full_sobel()
     }
 }
