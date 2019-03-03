@@ -3,8 +3,7 @@ use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
 use ndarray::s;
 use num_traits::cast::{FromPrimitive, NumCast};
-use num_traits::{Num, NumAssignOps};
-use std::fmt::Display;
+use num_traits::Num;
 use std::marker::PhantomData;
 
 /// Basic structure containing an image.
@@ -28,11 +27,36 @@ where
         + Clone
         + FromPrimitive
         + Num
-        + NumAssignOps
         + NumCast
-        + PartialOrd
-        + Display
         + PixelBound,
+    C: ColourModel,
+{
+
+    /// Converts image into a different type - doesn't scale to new pixel bounds
+    pub fn into_type<T2>(self) -> Image<T2, C>
+    where
+        T2: Copy
+            + Clone
+            + FromPrimitive
+            + Num
+            + NumCast
+            + PixelBound,
+    {
+        let rescale = |x: &T| {
+            let scaled = normalise_pixel_value(*x)
+                * (T2::max_pixel() - T2::min_pixel())
+                    .to_f64()
+                    .unwrap_or_else(|| 0.0f64);
+            T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
+        };
+        let data = self.data.map(rescale);
+        Image::<T2, C>::from_data(data)
+    }
+}
+
+impl<T, C> Image<T, C>
+where
+    T: Clone + Num,
     C: ColourModel,
 {
     /// Construct a new image filled with zeros using the given dimensions and
@@ -54,39 +78,6 @@ where
         }
     }
 
-    /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2>(self) -> Image<T2, C>
-    where
-        T2: Copy
-            + Clone
-            + FromPrimitive
-            + Num
-            + NumAssignOps
-            + NumCast
-            + PartialOrd
-            + Display
-            + PixelBound,
-    {
-        let rescale = |x: &T| {
-            let scaled = normalise_pixel_value(*x)
-                * (T2::max_pixel() - T2::min_pixel())
-                    .to_f64()
-                    .unwrap_or_else(|| 0.0f64);
-            T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
-        };
-        let data = self.data.map(rescale);
-        Image::<T2, C>::from_data(data)
-    }
-
-    /// Get a view of all colour channels at a pixels location
-    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
-        self.data.slice(s![row, col, ..])
-    }
-
-    /// Get a mutable view of a pixels colour channels given a location
-    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
-        self.data.slice_mut(s![row, col, ..])
-    }
 }
 
 impl<T, C> Image<T, C>
@@ -112,6 +103,16 @@ where
     /// Convenience method to get number of channels
     pub fn channels(&self) -> usize {
         C::channels()
+    }
+
+    /// Get a view of all colour channels at a pixels location
+    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
+        self.data.slice(s![row, col, ..])
+    }
+
+    /// Get a mutable view of a pixels colour channels given a location
+    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
+        self.data.slice_mut(s![row, col, ..])
     }
 }
 
