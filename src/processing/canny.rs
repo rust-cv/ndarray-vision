@@ -44,7 +44,7 @@ where
             
             let mag = non_maxima_supression(mag, rot.view());
             
-            Ok(link_edges(mag, t2))
+            Ok(link_edges(mag, t1, t2))
         }
     }
 }
@@ -102,12 +102,47 @@ where
     result
 }
 
-fn link_edges<T>(magnitudes: Array3<T>, upper: T) -> Array3<bool> 
+fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool> 
 where 
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
 {
-    let strong_edges = magnitudes.mapv(|x| if x >= upper { x } else { T::zero() });
-    unimplemented!()
+    let mut result = magnitudes.mapv(|x| x >= upper);
+    let rows = result.shape()[0];
+    let cols = result.shape()[1];
+    
+    for r in 0..rows {
+        for c in 0..cols {
+            // If it is a strong edge check if neighbours are weak and add them
+            if result[[r, c, 0]]  {
+                if r > 0 && magnitudes[[r-1, c, 0]] >= lower {
+                    result[[r-1, c, 0]] = true;
+                    if c > 0 && magnitudes[[r-1, c-1, 0]] >= lower {
+                        result[[r-1, c-1, 0]] = true;
+                    }
+                    if c < cols -1 && magnitudes[[r-1, c+1, 0]] >= lower {
+                        result[[r-1, c+1, 0]] = true;
+                    }
+                }
+                if r < rows -1 && magnitudes[[r+1, c, 0]] >= lower {
+                    result[[r+1, c, 0]] = true;
+                    if c > 0 && magnitudes[[r+1, c-1, 0]] >= lower {
+                        result[[r+1, c-1, 0]] = true;
+                    }
+                    if c < cols -1 && magnitudes[[r+1, c+1, 0]] >= lower {
+                        result[[r+1, c+1, 0]] = true;
+                    }
+                }
+                if c > 0 && magnitudes[[r, c-1, 0]] >= lower {
+                    result[[r, c-1, 0]] = true;
+                }
+                if c < cols -1 && magnitudes[[r, c+1, 0]] >= lower {
+                    result[[r, c+1, 0]] = true;
+                }
+            }   
+        }
+    }
+
+    result
 }
 
 impl<T> CannyBuilder<T>
