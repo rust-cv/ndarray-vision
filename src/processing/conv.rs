@@ -27,7 +27,7 @@ where
         if self.shape()[2] != kernel.shape()[2] {
             Err(Error::ChannelDimensionMismatch)
         } else {
-            let mut result = Array3::<Self::Data>::zeros(self.dim());
+            let mut result = self.clone();
             let k_s = kernel.shape();
             let row_offset = k_s[0] / 2;
             let col_offset = k_s[1] / 2;
