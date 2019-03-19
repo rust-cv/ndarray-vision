@@ -27,19 +27,31 @@ where
         if self.shape()[2] != kernel.shape()[2] {
             Err(Error::ChannelDimensionMismatch)
         } else {
-            let mut result = self.clone();
             let k_s = kernel.shape();
-            let row_offset = k_s[0] / 2;
-            let col_offset = k_s[1] / 2;
+            // Bit icky but handles fact that uncentred convolutions will cross the bounds
+            // otherwise
+            let row_offset = k_s[0] / 2 - ((k_s[0]%2==0) as usize);
+            let col_offset = k_s[1] / 2 - ((k_s[1]%2==0) as usize);
+            
+            // row_offset * 2 may not equal k_s[0] due to truncation
+            let shape = (self.shape()[0] - row_offset * 2, 
+                         self.shape()[1] - col_offset * 2, 
+                         self.shape()[2]);
 
-            Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
-                let mult = &window * &kernel;
-                let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
-                result
-                    .slice_mut(s![i + row_offset, j + col_offset, ..])
-                    .assign(&sums);
-            });
-            Ok(result)
+            if shape.0 > 0 && shape.1 > 0 {
+                let mut result = Self::zeros(shape);
+
+                Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
+                    let mult = &window * &kernel;
+                    let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
+                    result
+                        .slice_mut(s![i, j, ..])
+                        .assign(&sums);
+                });
+                Ok(result)
+            } else {
+                Err(Error::InvalidDimensions)
+            }
         }
     }
 
