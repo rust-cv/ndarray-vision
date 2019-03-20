@@ -1,14 +1,9 @@
+use crate::processing::Error;
 use core::ops::Neg;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num_traits::{cast::FromPrimitive, float::Float, sign::Signed, Num, NumAssignOps, NumOps};
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum Error {
-    InvalidDimensions,
-    InvalidParameter,
-    NumericError,
-}
 
 pub trait KernelBuilder<T> {
     type Params;
