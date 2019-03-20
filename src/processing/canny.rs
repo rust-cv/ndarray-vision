@@ -1,17 +1,24 @@
+use crate::core::{ColourModel, Image};
 use crate::processing::*;
-use ndarray::IntoDimension;
 use ndarray::prelude::*;
-use num_traits::{Num, NumAssignOps, real::Real, cast::FromPrimitive};
+use ndarray::IntoDimension;
+use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::collections::HashSet;
+use std::marker::PhantomData;
 
-
+/// Runs the Canny Edge Detector algorithm on a type T
 pub trait CannyEdgeDetectorExt<T> {
+    /// Output type, this is different as canny outputs a binary image
     type Output;
 
-   fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error>;
+    /// Run the edge detection algorithm with the given parameters. Due to Canny
+    /// being specified as working on greyscale images all current implementations
+    /// assume a single channel image returning an error otherwise.
+    fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error>;
 }
 
-
+/// Builder to construct the Canny parameters, if a parameter is not selected then
+/// a sensible default is chosen
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct CannyBuilder<T> {
     blur: Option<Array3<T>>,
@@ -19,50 +26,69 @@ pub struct CannyBuilder<T> {
     t2: Option<T>,
 }
 
+/// Parameters for the Canny Edge Detector
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct CannyParameters<T> {
-    blur: Array3<T>,
-    t1: T,
-    t2: T,
+    /// By default this library uses a Gaussian blur, although other kernels can
+    /// be substituted
+    pub blur: Array3<T>,
+    /// Lower threshold for weak edges used during the hystersis based edge linking
+    pub t1: T,
+    /// Upper threshold defining a strong edge
+    pub t2: T,
 }
 
+impl<T, C> CannyEdgeDetectorExt<T> for Image<T, C>
+where
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
+    C: ColourModel,
+{
+    type Output = Image<bool, C>;
 
-impl<T> CannyEdgeDetectorExt<T> for Array3<T> 
-where 
-    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+    fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error> {
+        let data = self.data.canny_edge_detector(params)?;
+        Ok(Self::Output {
+            data,
+            model: PhantomData,
+        })
+    }
+}
+
+impl<T> CannyEdgeDetectorExt<T> for Array3<T>
+where
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
 {
     type Output = Array3<bool>;
 
     fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error> {
         if self.shape()[2] > 1 {
-            Err(Error::ChannelDimensionMismatch) 
+            Err(Error::ChannelDimensionMismatch)
         } else {
-            // apply blur 
-            let blurred = self.conv2d(params.blur.view())?; 
+            // apply blur
+            let blurred = self.conv2d(params.blur.view())?;
             let (mag, rot) = blurred.full_sobel()?;
-            
+
             let mag = non_maxima_supression(mag, rot.view());
-            
+
             Ok(link_edges(mag, params.t1, params.t2))
         }
     }
 }
 
-
-fn non_maxima_supression<T>(magnitudes: Array3<T>, rotations: ArrayView3<T>) -> Array3<T> 
-where 
-    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+fn non_maxima_supression<T>(magnitudes: Array3<T>, rotations: ArrayView3<T>) -> Array3<T>
+where
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
 {
     let row_size = magnitudes.shape()[0] as isize;
     let column_size = magnitudes.shape()[1] as isize;
 
     let get_neighbours = |r, c, dr, dc| {
-        if (r == 0 && dr < 0) || (r==(row_size-1) && dr > 0) {
+        if (r == 0 && dr < 0) || (r == (row_size - 1) && dr > 0) {
             T::zero()
-        } else if (c==0 && dc < 0) || (c==(column_size-1) && dc > 0) {
+        } else if (c == 0 && dc < 0) || (c == (column_size - 1) && dc > 0) {
             T::zero()
         } else {
-            magnitudes[[(r+dr) as usize, (c+dc) as usize, 0]]
+            magnitudes[[(r + dr) as usize, (c + dc) as usize, 0]]
         }
     };
 
@@ -71,7 +97,7 @@ where
     for (i, mut row) in result.outer_iter_mut().enumerate() {
         let i = i as isize;
         for (j, mut col) in row.outer_iter_mut().enumerate() {
-            let  mut dir = rotations[[i as usize, j, 0]]
+            let mut dir = rotations[[i as usize, j, 0]]
                 .to_degrees()
                 .to_f64()
                 .unwrap_or_else(|| 0.0);
@@ -83,7 +109,7 @@ where
                 dir += 180.0;
             }
             // Now get neighbour values and suppress col if not a maxima
-            let (a ,b) = if dir < 45.0 {
+            let (a, b) = if dir < 45.0 {
                 (get_neighbours(i, j, 0, -1), get_neighbours(i, j, 0, 1))
             } else if dir < 90.0 {
                 (get_neighbours(i, j, -1, -1), get_neighbours(i, j, 1, 1))
@@ -101,55 +127,56 @@ where
     result
 }
 
-fn get_candidates(coord: (usize, usize),
-                  bounds: (usize, usize),
-                  closed_set: &HashSet<[usize; 2]>) -> Vec<[usize; 2]> {
-
+fn get_candidates(
+    coord: (usize, usize),
+    bounds: (usize, usize),
+    closed_set: &HashSet<[usize; 2]>,
+) -> Vec<[usize; 2]> {
     let mut result = Vec::new();
     let (r, c) = coord;
     let (rows, cols) = bounds;
 
     if r > 0 {
-        if c > 0 && !closed_set.contains(&[r-1, c+1]) {
-            result.push([r-1, c-1]);
+        if c > 0 && !closed_set.contains(&[r - 1, c + 1]) {
+            result.push([r - 1, c - 1]);
         }
-        if c < cols - 1 && !closed_set.contains(&[r-1, c+1]) {
-            result.push([r-1, c+1]);
+        if c < cols - 1 && !closed_set.contains(&[r - 1, c + 1]) {
+            result.push([r - 1, c + 1]);
         }
-        if !closed_set.contains(&[r-1, c]) {
-            result.push([r-1, c]);
+        if !closed_set.contains(&[r - 1, c]) {
+            result.push([r - 1, c]);
         }
     }
     if r < rows - 1 {
-        if c > 0 && !closed_set.contains(&[r+1, c-1]) {
-            result.push([r+1, c-1]);
+        if c > 0 && !closed_set.contains(&[r + 1, c - 1]) {
+            result.push([r + 1, c - 1]);
         }
-        if c < cols - 1 && !closed_set.contains(&[r+1, c+1]) {
-            result.push([r+1, c+1]);
+        if c < cols - 1 && !closed_set.contains(&[r + 1, c + 1]) {
+            result.push([r + 1, c + 1]);
         }
-        if !closed_set.contains(&[r+1, c]) {
-            result.push([r+1, c]);
+        if !closed_set.contains(&[r + 1, c]) {
+            result.push([r + 1, c]);
         }
     }
     result
 }
 
-fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool> 
-where 
-    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps
+fn link_edges<T>(magnitudes: Array3<T>, lower: T, upper: T) -> Array3<bool>
+where
+    T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
 {
     let magnitudes = magnitudes.mapv(|x| if x >= lower { x } else { T::zero() });
     let mut result = magnitudes.mapv(|x| x >= upper);
     let mut visited = HashSet::new();
-    
+
     let rows = result.shape()[0];
     let cols = result.shape()[1];
 
     for r in 0..rows {
         for c in 0..cols {
             // If it is a strong edge check if neighbours are weak and add them
-            if result[[r, c, 0]]  {
-                visited.insert([r,c]);
+            if result[[r, c, 0]] {
+                visited.insert([r, c]);
                 let mut buffer = get_candidates((r, c), (rows, cols), &visited);
 
                 while let Some(cand) = buffer.pop() {
@@ -157,12 +184,12 @@ where
                     if magnitudes[coord3] > lower {
                         visited.insert(cand);
                         result[coord3] = true;
-                        
+
                         let temp = get_candidates((cand[0], cand[1]), (rows, cols), &visited);
                         buffer.extend_from_slice(temp.as_slice());
                     }
                 }
-            }   
+            }
         }
     }
     result
@@ -170,8 +197,9 @@ where
 
 impl<T> CannyBuilder<T>
 where
-    T: Copy + Clone + FromPrimitive + Real + Num
+    T: Copy + Clone + FromPrimitive + Real + Num,
 {
+    /// Creates a new Builder with no parameters selected
     pub fn new() -> Self {
         Self {
             blur: None,
@@ -180,6 +208,7 @@ where
         }
     }
 
+    /// Sets the lower threshold for the parameters returning a new builder
     pub fn lower_threshold(self, t1: T) -> Self {
         Self {
             blur: self.blur,
@@ -188,6 +217,7 @@ where
         }
     }
 
+    /// Sets the upper threshold for the parameters returning a new builder
     pub fn upper_threshold(self, t2: T) -> Self {
         Self {
             blur: self.blur,
@@ -196,7 +226,9 @@ where
         }
     }
 
-    pub fn blur<D>(self, shape: D, covariance: [f64;2]) -> Self 
+    /// Given the shape and covariance matrix constructs a Gaussian blur to be
+    /// used with the Canny Edge Detector
+    pub fn blur<D>(self, shape: D, covariance: [f64; 2]) -> Self
     where
         D: Copy + IntoDimension<Dim = Ix2>,
     {
@@ -213,6 +245,12 @@ where
         }
     }
 
+    /// Creates the Canny parameters to be used with sensible defaults for unspecified
+    /// parameters. This method also rearranges the upper and lower threshold to
+    /// ensure that the relationship `t1 <= t2` is maintained.
+    ///
+    /// Defaults are: a lower threshold of 0.3, upper threshold of 0.7 and a 5x5
+    /// Gaussian blur with a horizontal and vertical variances of 2.0.
     pub fn build(self) -> CannyParameters<T> {
         let blur = match self.blur {
             Some(b) => b,
@@ -231,11 +269,7 @@ where
             t1 = t2;
             t2 = temp;
         }
-        CannyParameters {
-            blur,
-            t1,
-            t2
-        }
+        CannyParameters { blur, t1, t2 }
     }
 }
 
@@ -253,7 +287,7 @@ mod tests {
         assert_eq!(builder.t1, Some(0.75));
         assert_eq!(builder.t2, Some(0.25));
         assert_eq!(builder.blur, None);
-       
+
         let result = builder.clone().build();
 
         assert_eq!(result.t1, 0.25);
@@ -270,13 +304,17 @@ mod tests {
 
     #[test]
     fn canny_thresholding() {
-        let magnitudes = arr3(&[[[0.2], [0.4], [0.0]], 
-                                [[0.7], [0.5], [0.8]], 
-                                [[0.1], [0.6], [0.0]]]);
+        let magnitudes = arr3(&[
+            [[0.2], [0.4], [0.0]],
+            [[0.7], [0.5], [0.8]],
+            [[0.1], [0.6], [0.0]],
+        ]);
 
-        let expected = arr3(&[[[false], [false], [false]],
-                              [[true], [true], [true]],
-                              [[false], [true], [false]]]);
+        let expected = arr3(&[
+            [[false], [false], [false]],
+            [[true], [true], [true]],
+            [[false], [true], [false]],
+        ]);
 
         let result = link_edges(magnitudes, 0.4, 0.69);
 

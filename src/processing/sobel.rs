@@ -12,7 +12,7 @@ where
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
     fn apply_sobel(&self) -> Result<Self, Error>;
-    
+
     /// Returns the magntitude and rotation outputs for use in other algorithms
     /// like the Canny edge detector. Rotation is in radians
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
@@ -30,7 +30,7 @@ where
 
     let h_deriv = mat.conv2d(h_kernel.view())?;
     let v_deriv = mat.conv2d(v_kernel.view())?;
-    
+
     Ok((h_deriv, v_deriv))
 }
 
@@ -48,13 +48,13 @@ where
 
         let mut result = h_deriv + v_deriv;
         result.mapv_inplace(|x| x.sqrt());
-        
+
         // squash values above 1.0
         result.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
 
         Ok(result)
     }
-    
+
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
@@ -62,9 +62,9 @@ where
         magnitude.mapv_inplace(|x| x.sqrt());
         magnitude.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
 
-        let mut rotation = v_deriv/h_deriv;
+        let mut rotation = v_deriv / h_deriv;
         rotation.mapv_inplace(|x| x.atan());
-        
+
         Ok((magnitude, rotation))
     }
 }
@@ -80,7 +80,7 @@ where
         let data = self.data.apply_sobel()?;
         Ok(Image::from_data(data))
     }
-    
+
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         self.data.full_sobel()
     }

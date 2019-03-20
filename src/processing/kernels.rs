@@ -4,7 +4,6 @@ use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num_traits::{cast::FromPrimitive, float::Float, sign::Signed, Num, NumAssignOps, NumOps};
 
-
 pub trait KernelBuilder<T> {
     type Params;
     /// Build a kernel with a given dimension

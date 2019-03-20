@@ -23,24 +23,13 @@ where
 
 impl<T, C> Image<T, C>
 where
-    T: Copy
-        + Clone
-        + FromPrimitive
-        + Num
-        + NumCast
-        + PixelBound,
+    T: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     C: ColourModel,
 {
-
     /// Converts image into a different type - doesn't scale to new pixel bounds
     pub fn into_type<T2>(self) -> Image<T2, C>
     where
-        T2: Copy
-            + Clone
-            + FromPrimitive
-            + Num
-            + NumCast
-            + PixelBound,
+        T2: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     {
         let rescale = |x: &T| {
             let scaled = normalise_pixel_value(*x)
@@ -77,7 +66,6 @@ where
             model: PhantomData,
         }
     }
-
 }
 
 impl<T, C> Image<T, C>
