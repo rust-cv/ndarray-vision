@@ -7,7 +7,9 @@ use std::path::PathBuf;
 
 fn canny_edges(img: &Image<f64, Gray>) -> Image<f64, Gray> {
     let x = CannyBuilder::<f64>::new()
-        .upper_threshold(0.6)
+        .lower_threshold(0.3)
+        .upper_threshold(0.5)
+        .blur((5, 5), [0.4, 0.4])
         .build();
     let data = img.data.canny_edge_detector(x).expect("Failed to run canny");
 
@@ -35,13 +37,13 @@ fn main() {
         // back to RGB
         let image: Image<_, RGB> = image.into();
         let mut lena = PathBuf::from(&root);
-        lena.push("images/lenaedges.ppm");
+        lena.push("images/lena-sobel.ppm");
 
         let ppm = PpmEncoder::new_plaintext_encoder();
         ppm.encode_file(&image, lena).expect("Unable to encode ppm");
 
         let mut lena = PathBuf::from(&root);
-        lena.push("images/lenacanny.ppm");
+        lena.push("images/lena-canny.ppm");
         ppm.encode_file(&canny.into(), lena).expect("Unable to encode ppm");
     }
 }
