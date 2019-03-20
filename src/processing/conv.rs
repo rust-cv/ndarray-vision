@@ -6,14 +6,17 @@ use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
 
-
+/// Perform image convolutions
 pub trait ConvolutionExt
 where
     Self: Sized,
 {
+    /// Underlying data type to perform the colution on 
     type Data;
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
 
+    /// Perform a convolution returning the resultant data
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
+    /// Performs the convolution inplace mutating the containers data
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
 }
 
@@ -30,13 +33,15 @@ where
             let k_s = kernel.shape();
             // Bit icky but handles fact that uncentred convolutions will cross the bounds
             // otherwise
-            let row_offset = k_s[0] / 2 - ((k_s[0]%2==0) as usize);
-            let col_offset = k_s[1] / 2 - ((k_s[1]%2==0) as usize);
-            
+            let row_offset = k_s[0] / 2 - ((k_s[0] % 2 == 0) as usize);
+            let col_offset = k_s[1] / 2 - ((k_s[1] % 2 == 0) as usize);
+
             // row_offset * 2 may not equal k_s[0] due to truncation
-            let shape = (self.shape()[0] - row_offset * 2, 
-                         self.shape()[1] - col_offset * 2, 
-                         self.shape()[2]);
+            let shape = (
+                self.shape()[0] - row_offset * 2,
+                self.shape()[1] - col_offset * 2,
+                self.shape()[2],
+            );
 
             if shape.0 > 0 && shape.1 > 0 {
                 let mut result = Self::zeros(shape);
@@ -44,9 +49,7 @@ where
                 Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
                     let mult = &window * &kernel;
                     let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
-                    result
-                        .slice_mut(s![i, j, ..])
-                        .assign(&sums);
+                    result.slice_mut(s![i, j, ..]).assign(&sums);
                 });
                 Ok(result)
             } else {

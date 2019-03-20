@@ -11,11 +11,13 @@ enum EncodingType {
     Plaintext,
 }
 
+/// Encoder type for a PPM image.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct PpmEncoder {
     encoding: EncodingType,
 }
 
+/// Decoder type for a PPM image.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Default)]
 pub struct PpmDecoder;
 

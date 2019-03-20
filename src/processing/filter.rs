@@ -6,7 +6,11 @@ use ndarray_stats::Quantile1dExt;
 use num_traits::{FromPrimitive, Num, ToPrimitive};
 use std::marker::PhantomData;
 
+/// Median filter, given a region to move over the image, each pixel is given
+/// the median value of itself and it's neighbours
 pub trait MedianFilterExt {
+    /// Run the median filter given the region. Median is assumed to be calculated
+    /// independently for each channel.
     fn median_filter<E>(&self, region: E) -> Self
     where
         E: IntoDimension<Dim = Ix2>;

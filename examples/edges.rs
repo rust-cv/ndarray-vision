@@ -11,9 +11,9 @@ fn canny_edges(img: &Image<f64, Gray>) -> Image<f64, Gray> {
         .upper_threshold(0.5)
         .blur((5, 5), [0.4, 0.4])
         .build();
-    let data = img.data.canny_edge_detector(x).expect("Failed to run canny");
+    let res = img.canny_edge_detector(x).expect("Failed to run canny");
 
-    Image::from_data(data.mapv(|x| if x { 1.0 } else { 0.0 }))
+    Image::from_data(res.data.mapv(|x| if x { 1.0 } else { 0.0 }))
 }
 
 fn main() {
@@ -44,6 +44,7 @@ fn main() {
 
         let mut lena = PathBuf::from(&root);
         lena.push("images/lena-canny.ppm");
-        ppm.encode_file(&canny.into(), lena).expect("Unable to encode ppm");
+        ppm.encode_file(&canny.into(), lena)
+            .expect("Unable to encode ppm");
     }
 }
