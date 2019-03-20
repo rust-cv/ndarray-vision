@@ -239,5 +239,48 @@ where
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ndarray::arr3;
 
+    #[test]
+    fn canny_builder() {
+        let builder = CannyBuilder::<f64>::new()
+            .lower_threshold(0.75)
+            .upper_threshold(0.25);
 
+        assert_eq!(builder.t1, Some(0.75));
+        assert_eq!(builder.t2, Some(0.25));
+        assert_eq!(builder.blur, None);
+       
+        let result = builder.clone().build();
+
+        assert_eq!(result.t1, 0.25);
+        assert_eq!(result.t2, 0.75);
+
+        let builder2 = builder.blur((3, 3), [0.2, 0.2]);
+
+        assert_eq!(builder2.t1, Some(0.75));
+        assert_eq!(builder2.t2, Some(0.25));
+        assert!(builder2.blur.is_some());
+        let gauss = builder2.blur.unwrap();
+        assert_eq!(gauss.shape(), [3, 3, 1]);
+    }
+
+    #[test]
+    fn canny_thresholding() {
+        let magnitudes = arr3(&[[[0.2], [0.4], [0.0]], 
+                                [[0.7], [0.5], [0.8]], 
+                                [[0.1], [0.6], [0.0]]]);
+
+        let expected = arr3(&[[[false], [false], [false]],
+                              [[true], [true], [true]],
+                              [[false], [true], [false]]]);
+
+        let result = link_edges(magnitudes, 0.4, 0.69);
+
+        assert_eq!(result, expected);
+    }
+
+}
