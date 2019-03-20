@@ -15,7 +15,11 @@ where
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
     ///
-    /// This should allow for max compatibility with maths ops in ndarray
+    /// This should allow for max compatibility with maths ops in ndarray. 
+    /// Caution should be taken if performing any operations that change the
+    /// number of channels in an image as this may cause other functionality to
+    /// perform incorrectly. Use conversions to one of the `Generic` colour models
+    /// instead.
     pub data: Array3<T>,
     /// Representation of how colour is encoded in the image
     pub(crate) model: PhantomData<C>,
@@ -57,6 +61,9 @@ where
         }
     }
 
+    /// Given the shape of the image and a data vector create an image. If 
+    /// the data sizes don't match a zero filled image will be returned instead
+    /// of panicking
     pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Self {
         let data = Array3::<T>::from_shape_vec((rows, cols, C::channels()), data)
             .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));

@@ -6,39 +6,59 @@ use num_traits::{Num, NumAssignOps};
 use std::convert::From;
 use std::fmt::Display;
 
+/// Grayscale image
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Gray;
 /// RGB colour as intended by sRGB and standardised in IEC 61966-2-1:1999
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct RGB;
+/// RGB colour similar to `RGB` type but with an additional channel for alpha
+/// transparency
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct RGBA;
+/// Hue Saturation Value image
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct HSV;
+/// Hue Saturation Intensity image
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct HSI;
+/// Hue Saturation Lightness image
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct HSL;
+/// YCrCb represents an image as luma, red-difference chroma and blue-difference
+/// chroma. 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct YCrCb;
 /// CIE XYZ standard - assuming a D50 reference white
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CIEXYZ;
+/// CIE LAB (also known as CIE L*a*b* or Lab) a colour model that represents
+/// colour as lightness, and a* and b* as the green-red and blue-yellow colour
+/// differences respectively. It is designed to be representative of human 
+/// perception of colour
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CIELAB;
+/// Similar to `CIELAB` but has a different representation of colour.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CIELUV;
+/// A single channel image with no colour model specified
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Generic1;
+/// A two channel image with no colour model specified
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Generic2;
+/// A three channel image with no colour model specified
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Generic3;
+/// A four channel image with no colour model specified
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Generic4;
+/// A five channel image with no colour model specified
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Generic5;
 
+/// ColourModel trait, this trait reports base parameters for different colour
+/// models
 pub trait ColourModel {
     /// Number of colour channels for a type.
     fn channels() -> usize {
@@ -78,6 +98,7 @@ where
     T::from_f64(x).unwrap_or_else(T::zero)
 }
 
+/// Converts an RGB pixel to a HSV pixel
 pub fn rgb_to_hsv<T>(r: T, g: T, b: T) -> (T, T, T)
 where
     T: Copy
@@ -117,6 +138,7 @@ where
     (hue, sat, val)
 }
 
+/// Converts a HSV pixel to a RGB pixel
 pub fn hsv_to_rgb<T>(h: T, s: T, v: T) -> (T, T, T)
 where
     T: Copy

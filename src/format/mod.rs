@@ -49,4 +49,7 @@ where
     }
 }
 
+/// Netpbm refers to a collection of image formats used and defined by the Netpbm
+/// project. These include the portable pixmap format (PPM), portable graymap
+/// format (PGM), and portable bitmap format (PBM)
 pub mod netpbm;

@@ -6,13 +6,17 @@ use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
 
+/// Perform image convolutions
 pub trait ConvolutionExt
 where
     Self: Sized,
 {
+    /// Underlying data type to perform the colution on 
     type Data;
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
 
+    /// Perform a convolution returning the resultant data
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
+    /// Performs the convolution inplace mutating the containers data
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
 }
 

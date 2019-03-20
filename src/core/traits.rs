@@ -22,8 +22,9 @@
 /// corresponding methods in `u8`
 /// ```
 pub trait PixelBound {
+    /// The minimum value a pixel can take 
     fn min_pixel() -> Self;
-
+    /// The maximum value a pixel can take
     fn max_pixel() -> Self;
 }
 

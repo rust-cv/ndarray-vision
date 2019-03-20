@@ -4,9 +4,12 @@ use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num_traits::{cast::FromPrimitive, float::Float, sign::Signed, Num, NumAssignOps, NumOps};
 
+/// Builds a convolutioon kernel given a shape and optional parameters
 pub trait KernelBuilder<T> {
+    /// Parameters used in construction of the kernel
     type Params;
-    /// Build a kernel with a given dimension
+    /// Build a kernel with a given dimension given sensible defaults for any
+    /// parameters
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
     where
         D: Copy + IntoDimension<Dim = Ix3>;
@@ -20,7 +23,9 @@ pub trait KernelBuilder<T> {
     }
 }
 
+/// Create a kernel with a fixed dimension
 pub trait FixedDimensionKernelBuilder<T> {
+    /// Parameters used in construction of the kernel
     type Params;
     /// Build a fixed size kernel
     fn build() -> Result<Array3<T>, Error>;
@@ -30,12 +35,28 @@ pub trait FixedDimensionKernelBuilder<T> {
     }
 }
 
+/// Create a Laplacian filter, this provides the 2nd spatial derivative of an
+/// image. For a 3x3x1 kernel this is typically given as so:
+/// ```
+/// [0, -1, 0]
+/// [-1, 4, -1]
+/// [0, -1, 0]
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct LaplaceFilter;
 
+/// Specifies the type of Laplacian filter
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LaplaceType {
+    /// Standard filter and the default 
     Standard,
+    /// The diagonal filter also contains derivatives for diagonal lines and
+    /// is given by:
+    /// ```
+    /// [-1, -1, -1]
+    /// [-1, 8, -1]
+    /// [-1, -1, -1]
+    /// ```
     Diagonal,
 }
 
@@ -43,6 +64,7 @@ impl<T> FixedDimensionKernelBuilder<T> for LaplaceFilter
 where
     T: Copy + Clone + Num + NumOps + Signed + FromPrimitive,
 {
+    /// Type of Laplacian filter to construct
     type Params = LaplaceType;
 
     fn build() -> Result<Array3<T>, Error> {
@@ -69,15 +91,21 @@ where
     }
 }
 
+/// Builds a Gaussian kernel taking the covariance as a parameter. Covariance
+/// is given as 2 values for the x and y variance.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct GaussianFilter;
 
-/// Builds a Gaussian kernel taking the covariance as a parameter. Covariance
-/// is given as 2 values for the x and y variance.
 impl<T> KernelBuilder<T> for GaussianFilter
 where
     T: Copy + Clone + FromPrimitive + Num,
 {
+    /// The parameter for the Gaussian filter is the horizontal and vertical
+    /// covariances to form the covariance matrix. 
+    /// ```
+    /// [ Params[0], 0]
+    /// [ 0, Params[1]]
+    /// ```
     type Params = [f64; 2];
 
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
@@ -133,7 +161,10 @@ impl<T> KernelBuilder<T> for BoxLinearFilter
 where
     T: Float + Num + NumAssignOps + FromPrimitive,
 {
+    /// If false the kernel will not be normalised - this means that pixel bounds
+    /// may be exceeded and overflow may occur
     type Params = bool;
+
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
     where
         D: Copy + IntoDimension<Dim = Ix3>,
@@ -160,12 +191,17 @@ where
     }
 }
 
+/// Builder to create either a horizontal or vertical Sobel filter for the Sobel
+/// operator
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct SobelFilter;
 
+/// Orientation of the filter
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Orientation {
+    /// Obtain the vertical derivatives of an image
     Vertical,
+    /// Obtain the horizontal derivatives of an image
     Horizontal,
 }
 
@@ -173,6 +209,7 @@ impl<T> FixedDimensionKernelBuilder<T> for SobelFilter
 where
     T: Copy + Clone + Num + Neg<Output = T> + FromPrimitive,
 {
+    /// Orientation of the filter. Default is vertical
     type Params = Orientation;
     /// Build a fixed size kernel
     fn build() -> Result<Array3<T>, Error> {

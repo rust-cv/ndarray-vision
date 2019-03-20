@@ -5,10 +5,12 @@ use ndarray::prelude::*;
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
+/// Runs the sobel operator on an image
 pub trait SobelExt
 where
     Self: Sized,
 {
+    /// Type to output
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
     fn apply_sobel(&self) -> Result<Self, Error>;
