@@ -36,23 +36,23 @@ pub trait FixedDimensionKernelBuilder<T> {
 }
 
 /// Create a Laplacian filter, this provides the 2nd spatial derivative of an
-/// image. For a 3x3x1 kernel this is typically given as so:
-/// ```
-/// [0, -1, 0]
-/// [-1, 4, -1]
-/// [0, -1, 0]
-/// ```
+/// image. 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct LaplaceFilter;
 
 /// Specifies the type of Laplacian filter
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LaplaceType {
-    /// Standard filter and the default 
+    /// Standard filter and the default parameter choice, for a 3x3x1 matrix it is:
+    /// ```ignore
+    /// [0, -1, 0]
+    /// [-1, 4, -1]
+    /// [0, -1, 0]
+    /// ```
     Standard,
     /// The diagonal filter also contains derivatives for diagonal lines and
-    /// is given by:
-    /// ```
+    /// for a 3x3x1 matrix is given by:
+    /// ```ignore
     /// [-1, -1, -1]
     /// [-1, 8, -1]
     /// [-1, -1, -1]
@@ -102,7 +102,7 @@ where
 {
     /// The parameter for the Gaussian filter is the horizontal and vertical
     /// covariances to form the covariance matrix. 
-    /// ```
+    /// ```ignore
     /// [ Params[0], 0]
     /// [ 0, Params[1]]
     /// ```
