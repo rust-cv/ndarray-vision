@@ -5,8 +5,12 @@ use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 
 pub trait HistogramEqExt<A> where A: Ord {
+    /// Equalises an image histogram returning a new image.
+    /// Grids should be for a 1xN image as the image is flattened during processing
     fn equalise_hist(&self, grid: Grid<A>) -> Self;
 
+    /// Equalises an image histogram inplace
+    /// Grids should be for a 1xN image as the image is flattened during processing
     fn equalise_hist_inplace(&mut self, grid: Grid<A>);
 }
 
