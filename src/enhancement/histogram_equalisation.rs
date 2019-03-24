@@ -4,6 +4,7 @@ use ndarray_stats::{HistogramExt, histogram::Grid};
 use num_traits::{Num, NumAssignOps};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 
+/// Extension trait to implement histogram equalisation on other types
 pub trait HistogramEqExt<A> where A: Ord {
     /// Equalises an image histogram returning a new image.
     /// Grids should be for a 1xN image as the image is flattened during processing
