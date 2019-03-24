@@ -8,7 +8,7 @@ This project is a computer vision library built on top of ndarray. This project
 is a work in progress. Basic image encoding/decoding and processing are
 currently implemented.
 
-See the examples or a modules test for basic usage.
+See the examples and tests for basic usage.
 
 # Features
 
@@ -16,4 +16,6 @@ See the examples or a modules test for basic usage.
 * Image convolutions and common kernels (box linear, gaussian, laplace)
 * Median filtering
 * Sobel operator
+* Canny Edge Detection
+* Histogram Equalisation
 * Encoding and decoding PPM (binary or plaintext)
