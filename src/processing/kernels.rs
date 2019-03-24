@@ -1,18 +1,15 @@
+use crate::processing::Error;
 use core::ops::Neg;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
-use num_traits::{cast::FromPrimitive, float::Float, Num, NumAssignOps};
+use num_traits::{cast::FromPrimitive, float::Float, sign::Signed, Num, NumAssignOps, NumOps};
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum Error {
-    InvalidDimensions,
-    InvalidParameter,
-    NumericError,
-}
-
+/// Builds a convolutioon kernel given a shape and optional parameters
 pub trait KernelBuilder<T> {
+    /// Parameters used in construction of the kernel
     type Params;
-    /// Build a kernel with a given dimension
+    /// Build a kernel with a given dimension given sensible defaults for any
+    /// parameters
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
     where
         D: Copy + IntoDimension<Dim = Ix3>;
@@ -26,7 +23,9 @@ pub trait KernelBuilder<T> {
     }
 }
 
+/// Create a kernel with a fixed dimension
 pub trait FixedDimensionKernelBuilder<T> {
+    /// Parameters used in construction of the kernel
     type Params;
     /// Build a fixed size kernel
     fn build() -> Result<Array3<T>, Error>;
@@ -36,15 +35,77 @@ pub trait FixedDimensionKernelBuilder<T> {
     }
 }
 
+/// Create a Laplacian filter, this provides the 2nd spatial derivative of an
+/// image. 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub struct GaussianFilter;
+pub struct LaplaceFilter;
+
+/// Specifies the type of Laplacian filter
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+pub enum LaplaceType {
+    /// Standard filter and the default parameter choice, for a 3x3x1 matrix it is:
+    /// ```ignore
+    /// [0, -1, 0]
+    /// [-1, 4, -1]
+    /// [0, -1, 0]
+    /// ```
+    Standard,
+    /// The diagonal filter also contains derivatives for diagonal lines and
+    /// for a 3x3x1 matrix is given by:
+    /// ```ignore
+    /// [-1, -1, -1]
+    /// [-1, 8, -1]
+    /// [-1, -1, -1]
+    /// ```
+    Diagonal,
+}
+
+impl<T> FixedDimensionKernelBuilder<T> for LaplaceFilter
+where
+    T: Copy + Clone + Num + NumOps + Signed + FromPrimitive,
+{
+    /// Type of Laplacian filter to construct
+    type Params = LaplaceType;
+
+    fn build() -> Result<Array3<T>, Error> {
+        Self::build_with_params(LaplaceType::Standard)
+    }
+
+    fn build_with_params(p: Self::Params) -> Result<Array3<T>, Error> {
+        let res = match p {
+            LaplaceType::Standard => {
+                let m_1 = -T::one();
+                let p_4 = T::from_u8(4).ok_or_else(|| Error::NumericError)?;
+                let z = T::zero();
+
+                arr2(&[[z, m_1, z], [m_1, p_4, m_1], [z, m_1, z]])
+            }
+            LaplaceType::Diagonal => {
+                let m_1 = -T::one();
+                let p_8 = T::from_u8(8).ok_or_else(|| Error::NumericError)?;
+
+                arr2(&[[m_1, m_1, m_1], [m_1, p_8, m_1], [m_1, m_1, m_1]])
+            }
+        };
+        Ok(res.insert_axis(Axis(2)))
+    }
+}
 
 /// Builds a Gaussian kernel taking the covariance as a parameter. Covariance
 /// is given as 2 values for the x and y variance.
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct GaussianFilter;
+
 impl<T> KernelBuilder<T> for GaussianFilter
 where
     T: Copy + Clone + FromPrimitive + Num,
 {
+    /// The parameter for the Gaussian filter is the horizontal and vertical
+    /// covariances to form the covariance matrix. 
+    /// ```ignore
+    /// [ Params[0], 0]
+    /// [ 0, Params[1]]
+    /// ```
     type Params = [f64; 2];
 
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
@@ -52,7 +113,7 @@ where
         D: Copy + IntoDimension<Dim = Ix3>,
     {
         // This recommendation was taken from OpenCV 2.4 docs
-        let s = shape.clone().into_dimension();
+        let s = shape.into_dimension();
         let sig = 0.3 * (((std::cmp::max(s[0], 1) - 1) as f64) * 0.5 - 1.0) + 0.8;
         Self::build_with_params(shape, [sig, sig])
     }
@@ -79,7 +140,7 @@ where
 
             temp *= 1.0f64 / sum;
 
-            let temp = temp.mapv(|x| T::from_f64(x));
+            let temp = temp.mapv(T::from_f64);
 
             if temp.iter().any(|x| x.is_none()) {
                 Err(Error::NumericError)
@@ -100,7 +161,10 @@ impl<T> KernelBuilder<T> for BoxLinearFilter
 where
     T: Float + Num + NumAssignOps + FromPrimitive,
 {
+    /// If false the kernel will not be normalised - this means that pixel bounds
+    /// may be exceeded and overflow may occur
     type Params = bool;
+
     fn build<D>(shape: D) -> Result<Array3<T>, Error>
     where
         D: Copy + IntoDimension<Dim = Ix3>,
@@ -127,12 +191,17 @@ where
     }
 }
 
+/// Builder to create either a horizontal or vertical Sobel filter for the Sobel
+/// operator
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct SobelFilter;
 
+/// Orientation of the filter
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Orientation {
+    /// Obtain the vertical derivatives of an image
     Vertical,
+    /// Obtain the horizontal derivatives of an image
     Horizontal,
 }
 
@@ -140,6 +209,7 @@ impl<T> FixedDimensionKernelBuilder<T> for SobelFilter
 where
     T: Copy + Clone + Num + Neg<Output = T> + FromPrimitive,
 {
+    /// Orientation of the filter. Default is vertical
     type Params = Orientation;
     /// Build a fixed size kernel
     fn build() -> Result<Array3<T>, Error> {
@@ -229,6 +299,21 @@ mod tests {
         assert_eq!(
             filter,
             arr3(&[[[0], [0], [0]], [[0], [1], [0]], [[0], [0], [0]]])
+        );
+    }
+
+    #[test]
+    fn test_laplace_filters() {
+        let standard = LaplaceFilter::build().unwrap();
+        assert_eq!(
+            standard,
+            arr3(&[[[0], [-1], [0]], [[-1], [4], [-1]], [[0], [-1], [0]]])
+        );
+
+        let standard = LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
+        assert_eq!(
+            standard,
+            arr3(&[[[-1], [-1], [-1]], [[-1], [8], [-1]], [[-1], [-1], [-1]]])
         );
     }
 }

@@ -3,8 +3,7 @@ use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
 use ndarray::s;
 use num_traits::cast::{FromPrimitive, NumCast};
-use num_traits::{Num, NumAssignOps};
-use std::fmt::Display;
+use num_traits::Num;
 use std::marker::PhantomData;
 
 /// Basic structure containing an image.
@@ -16,7 +15,11 @@ where
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
     ///
-    /// This should allow for max compatibility with maths ops in ndarray
+    /// This should allow for max compatibility with maths ops in ndarray. 
+    /// Caution should be taken if performing any operations that change the
+    /// number of channels in an image as this may cause other functionality to
+    /// perform incorrectly. Use conversions to one of the `Generic` colour models
+    /// instead.
     pub data: Array3<T>,
     /// Representation of how colour is encoded in the image
     pub(crate) model: PhantomData<C>,
@@ -24,25 +27,31 @@ where
 
 impl<T, C> Image<T, C>
 where
-    T: Copy
-        + Clone
-        + FromPrimitive
-        + Num
-        + NumAssignOps
-        + NumCast
-        + PartialOrd
-        + Display
-        + PixelBound,
+    T: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     C: ColourModel,
 {
-    /// Construct the image from a given Array3
-    pub fn from_data(data: Array3<T>) -> Self {
-        Image {
-            data: data,
-            model: PhantomData,
-        }
+    /// Converts image into a different type - doesn't scale to new pixel bounds
+    pub fn into_type<T2>(self) -> Image<T2, C>
+    where
+        T2: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
+    {
+        let rescale = |x: &T| {
+            let scaled = normalise_pixel_value(*x)
+                * (T2::max_pixel() - T2::min_pixel())
+                    .to_f64()
+                    .unwrap_or_else(|| 0.0f64);
+            T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
+        };
+        let data = self.data.map(rescale);
+        Image::<T2, C>::from_data(data)
     }
+}
 
+impl<T, C> Image<T, C>
+where
+    T: Clone + Num,
+    C: ColourModel,
+{
     /// Construct a new image filled with zeros using the given dimensions and
     /// a colour model
     pub fn new(rows: usize, columns: usize) -> Self {
@@ -52,49 +61,17 @@ where
         }
     }
 
+    /// Given the shape of the image and a data vector create an image. If 
+    /// the data sizes don't match a zero filled image will be returned instead
+    /// of panicking
     pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Self {
         let data = Array3::<T>::from_shape_vec((rows, cols, C::channels()), data)
             .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));
 
         Image {
-            data: data,
+            data,
             model: PhantomData,
         }
-    }
-
-    /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2>(&self) -> Image<T2, C>
-    where
-        T2: Copy
-            + Clone
-            + FromPrimitive
-            + Num
-            + NumAssignOps
-            + NumCast
-            + PartialOrd
-            + Display
-            + PixelBound
-            + From<T>,
-    {
-        let rescale = |x: &T| {
-            let scaled = rescale_pixel_value(*x)
-                * (T2::max_pixel() - T2::min_pixel())
-                    .to_f64()
-                    .unwrap_or_else(|| 0.0f64);
-            T2::from_f64(scaled).unwrap_or_else(|| T2::zero()) + T2::min_pixel()
-        };
-        let data = self.data.map(rescale);
-        Image::<T2, C>::from_data(data)
-    }
-
-    /// Get a view of all colour channels at a pixels location
-    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
-        self.data.slice(s![row, col, ..])
-    }
-
-    /// Get a mutable view of a pixels colour channels given a location
-    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
-        self.data.slice_mut(s![row, col, ..])
     }
 }
 
@@ -102,6 +79,13 @@ impl<T, C> Image<T, C>
 where
     C: ColourModel,
 {
+    /// Construct the image from a given Array3
+    pub fn from_data(data: Array3<T>) -> Self {
+        Image {
+            data,
+            model: PhantomData,
+        }
+    }
     /// Returns the number of rows in an image
     pub fn rows(&self) -> usize {
         self.data.shape()[0]
@@ -115,11 +99,21 @@ where
     pub fn channels(&self) -> usize {
         C::channels()
     }
+
+    /// Get a view of all colour channels at a pixels location
+    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
+        self.data.slice(s![row, col, ..])
+    }
+
+    /// Get a mutable view of a pixels colour channels given a location
+    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
+        self.data.slice_mut(s![row, col, ..])
+    }
 }
 
 /// Returns a normalised pixel value or 0 if it can't convert the types.
 /// This should never fail if your types are good.
-pub fn rescale_pixel_value<T>(t: T) -> f64
+pub fn normalise_pixel_value<T>(t: T) -> f64
 where
     T: PixelBound + Num + NumCast,
 {

@@ -14,11 +14,11 @@
 //! * Geometric image transformations
 //! * Intrinsics required for feature detection and matching
 //! * Camera Calibration
-//! * Frequency domain image processing 
+//! * Frequency domain image processing
 //!
 //! This may seem like a lot but is still a lot less than OpenCV offers. Also,
 //! where possible algorithms will be used from other crates in the ecosystem
-//! when those operations aren't Computer Vision specific. For example, 
+//! when those operations aren't Computer Vision specific. For example,
 //! `ndarray-stats` has histogram calculation.
 //!
 //! This crate is a work in progress and as such most of these features aren't
@@ -31,3 +31,5 @@ pub mod core;
 pub mod format;
 /// Image processing intrinsics and common filters/algorithms.
 pub mod processing;
+/// Image enhancement intrinsics and algorithms
+pub mod enhancement;
