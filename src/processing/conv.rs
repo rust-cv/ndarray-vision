@@ -11,7 +11,7 @@ pub trait ConvolutionExt
 where
     Self: Sized,
 {
-    /// Underlying data type to perform the colution on 
+    /// Underlying data type to perform the colution on
     type Data;
 
     /// Perform a convolution returning the resultant data
@@ -23,7 +23,7 @@ where
 fn kernel_centre(rows: usize, cols: usize) -> (usize, usize) {
     let row_offset = rows / 2 - ((rows % 2 == 0) as usize);
     let col_offset = cols / 2 - ((cols % 2 == 0) as usize);
-    (row_offset, col_offset) 
+    (row_offset, col_offset)
 }
 
 impl<T> ConvolutionExt for Array3<T>
@@ -41,16 +41,25 @@ where
             // otherwise
             let (row_offset, col_offset) = kernel_centre(k_s[0], k_s[1]);
             // row_offset * 2 may not equal k_s[0] due to truncation
-            let shape = (
-                self.shape()[0] - row_offset * 2,
-                self.shape()[1] - col_offset * 2,
+            let shape_ext = (
+                self.shape()[0] + row_offset * 2,
+                self.shape()[1] + col_offset * 2,
                 self.shape()[2],
             );
+            let shape = (self.shape()[0], self.shape()[1], self.shape()[2]);
 
             if shape.0 > 0 && shape.1 > 0 {
                 let mut result = Self::zeros(shape);
 
-                Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
+                let mut tmp = Self::zeros(shape_ext);
+                tmp.slice_mut(s![
+                    row_offset..shape_ext.0 - row_offset,
+                    col_offset..shape_ext.1 - col_offset,
+                    ..
+                ])
+                .assign(&self);
+
+                Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
                     let mult = &window * &kernel;
                     let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
                     result.slice_mut(s![i, j, ..]).assign(&sums);
@@ -63,18 +72,7 @@ where
     }
 
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
-        let data = self.conv2d(kernel)?;
-        let shape = kernel.shape();
-        let centre = kernel_centre(shape[0], shape[1]);
-        for (d, v) in self.indexed_iter_mut() {
-            if d.0 < centre.0 || d.1 < centre.1 {
-                continue;
-            }
-            let centred = (d.0 - centre.0, d.1 - centre.1, d.2);
-            if let Some(d) = data.get(centred) {
-                *v = *d;
-            }
-        }
+        *self = self.conv2d(kernel)?;
         Ok(())
     }
 }
@@ -124,47 +122,65 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn basic_conv() {
-        let input_pixels = vec![1, 1, 1, 0, 0,
-                                0, 1, 1, 1, 0,
-                                0, 0, 1, 1, 1,
-                                0, 0, 1, 1, 0,
-                                0, 1, 1, 0, 0];
-        let output_pixels = vec![4, 3, 4,
-                                 2, 4, 3,
-                                 2, 3, 4];
+        let input_pixels = vec![
+            1, 1, 1, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 1, 1, 1,
+            0, 0, 1, 1, 0,
+            0, 1, 1, 0, 0,
+        ];
+        let output_pixels = vec![
+            2, 2, 3, 1, 1,
+            1, 4, 3, 4, 1,
+            1, 2, 4, 3, 3,
+            1, 2, 3, 4, 1,
+            0, 2, 2, 1, 1, 
+        ];
 
-        let kern = arr3(&[[[1], [0], [1]],
-                          [[0], [1], [0]],
-                          [[1], [0], [1]]]);
+        let kern = arr3(
+            &[
+                [[1], [0], [1]],
+                [[0], [1], [0]],
+                [[1], [0], [1]]
+            ]);
 
         let input = Image::<u8, Gray>::from_shape_data(5, 5, input_pixels);
-        let expected = Image::<u8, Gray>::from_shape_data(3, 3, output_pixels);
+        let expected = Image::<u8, Gray>::from_shape_data(5, 5, output_pixels);
 
         assert_eq!(Ok(expected), input.conv2d(kern.view()));
     }
 
     #[test]
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     fn basic_conv_inplace() {
-        let input_pixels = vec![1, 1, 1, 0, 0,
-                                0, 1, 1, 1, 0,
-                                0, 0, 1, 1, 1,
-                                0, 0, 1, 1, 0,
-                                0, 1, 1, 0, 0];
+        let input_pixels = vec![
+            1, 1, 1, 0, 0,
+            0, 1, 1, 1, 0,
+            0, 0, 1, 1, 1,
+            0, 0, 1, 1, 0,
+            0, 1, 1, 0, 0,
+        ];
 
-        let output_pixels = vec![1, 1, 1, 0, 0,
-                                 0, 4, 3, 4, 0,
-                                 0, 2, 4, 3, 1,
-                                 0, 2, 3, 4, 0,
-                                 0, 1, 1, 0, 0];
+        let output_pixels = vec![
+            2, 2, 3, 1, 1,
+            1, 4, 3, 4, 1,
+            1, 2, 4, 3, 3,
+            1, 2, 3, 4, 1,
+            0, 2, 2, 1, 1,
+        ];
 
-        let kern = arr3(&[[[1], [0], [1]],
-                          [[0], [1], [0]],
-                          [[1], [0], [1]]]);
+        let kern = arr3(
+            &[
+                [[1], [0], [1]],
+                [[0], [1], [0]],
+                [[1], [0], [1]]
+            ]);
 
         let mut input = Image::<u8, Gray>::from_shape_data(5, 5, input_pixels);
         let expected = Image::<u8, Gray>::from_shape_data(5, 5, output_pixels);
-        
+
         input.conv2d_inplace(kern.view()).unwrap();
 
         assert_eq!(expected, input);
