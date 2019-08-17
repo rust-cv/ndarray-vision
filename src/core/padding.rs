@@ -62,7 +62,6 @@ where
     }
 }
 
-
 impl<T> PaddingStrategy<T> for ZeroPadding
 where
     T: Copy + Zero,
@@ -139,7 +138,7 @@ mod tests {
         assert_eq!(p, exp);
 
         let p = i.pad((2, 0), &ConstantPadding(0));
-        let z = i.pad((2, 0), &ZeroPadding{});
+        let z = i.pad((2, 0), &ZeroPadding {});
         assert_eq!(p, z);
 
         let exp = Image::<u8, Gray>::from_shape_data(
