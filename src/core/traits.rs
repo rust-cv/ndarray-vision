@@ -22,13 +22,13 @@
 /// corresponding methods in `u8`
 /// ```
 pub trait PixelBound {
-    /// The minimum value a pixel can take 
+    /// The minimum value a pixel can take
     fn min_pixel() -> Self;
     /// The maximum value a pixel can take
     fn max_pixel() -> Self;
 
-    /// Returns the number of discrete levels. This is an option because it's 
-    /// deemed meaningless for types like floats which suffer from rounding 
+    /// Returns the number of discrete levels. This is an option because it's
+    /// deemed meaningless for types like floats which suffer from rounding
     /// issues
     fn discrete_levels() -> Option<usize>;
 }

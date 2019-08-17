@@ -1,3 +1,4 @@
+use crate::core::padding::*;
 use crate::core::{ColourModel, Image};
 use crate::processing::Error;
 use ndarray::prelude::*;
@@ -11,13 +12,29 @@ pub trait ConvolutionExt
 where
     Self: Sized,
 {
-    /// Underlying data type to perform the colution on
+    /// Underlying data type to perform the convolution on
     type Data;
 
     /// Perform a convolution returning the resultant data
+    /// applies the default padding of zero padding
     fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
     /// Performs the convolution inplace mutating the containers data
+    /// applies the default padding of zero padding
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
+    /// Perform a convolution returning the resultant data
+    /// applies the default padding of zero padding
+    fn conv2d_with_padding(
+        &self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<Self, Error>;
+    /// Performs the convolution inplace mutating the containers data
+    /// applies the default padding of zero padding
+    fn conv2d_inplace_with_padding(
+        &mut self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<(), Error>;
 }
 
 fn kernel_centre(rows: usize, cols: usize) -> (usize, usize) {
@@ -33,6 +50,19 @@ where
     type Data = T;
 
     fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
+        self.conv2d_with_padding(kernel, &ZeroPadding {})
+    }
+
+    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
+        *self = self.conv2d_with_padding(kernel, &ZeroPadding {})?;
+        Ok(())
+    }
+
+    fn conv2d_with_padding(
+        &self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<Self, Error> {
         if self.shape()[2] != kernel.shape()[2] {
             Err(Error::ChannelDimensionMismatch)
         } else {
@@ -40,24 +70,11 @@ where
             // Bit icky but handles fact that uncentred convolutions will cross the bounds
             // otherwise
             let (row_offset, col_offset) = kernel_centre(k_s[0], k_s[1]);
-            // row_offset * 2 may not equal k_s[0] due to truncation
-            let shape_ext = (
-                self.shape()[0] + row_offset * 2,
-                self.shape()[1] + col_offset * 2,
-                self.shape()[2],
-            );
             let shape = (self.shape()[0], self.shape()[1], self.shape()[2]);
 
             if shape.0 > 0 && shape.1 > 0 {
                 let mut result = Self::zeros(shape);
-
-                let mut tmp = Self::zeros(shape_ext);
-                tmp.slice_mut(s![
-                    row_offset..shape_ext.0 - row_offset,
-                    col_offset..shape_ext.1 - col_offset,
-                    ..
-                ])
-                .assign(&self);
+                let tmp = self.pad((row_offset, col_offset), strategy);
 
                 Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
                     let mult = &window * &kernel;
@@ -71,8 +88,12 @@ where
         }
     }
 
-    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
-        *self = self.conv2d(kernel)?;
+    fn conv2d_inplace_with_padding(
+        &mut self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<(), Error> {
+        *self = self.conv2d_with_padding(kernel, strategy)?;
         Ok(())
     }
 }
@@ -93,6 +114,26 @@ where
 
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
         self.data.conv2d_inplace(kernel)
+    }
+
+    fn conv2d_with_padding(
+        &self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<Self, Error> {
+        let data = self.data.conv2d_with_padding(kernel, strategy)?;
+        Ok(Self {
+            data,
+            model: PhantomData,
+        })
+    }
+
+    fn conv2d_inplace_with_padding(
+        &mut self,
+        kernel: ArrayView3<Self::Data>,
+        strategy: &dyn PaddingStrategy<Self::Data>,
+    ) -> Result<(), Error> {
+        self.data.conv2d_inplace_with_padding(kernel, strategy)
     }
 }
 
