@@ -3,6 +3,7 @@ use ndarray::prelude::*;
 use ndarray::{IntoDimension, Zip};
 use ndarray_stats::interpolate::*;
 use ndarray_stats::Quantile1dExt;
+use noisy_float::types::n64;
 use num_traits::{FromPrimitive, Num, ToPrimitive};
 use std::marker::PhantomData;
 
@@ -31,7 +32,7 @@ where
         let mut result = Array3::<T>::zeros(self.dim());
         Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
-            if let Some(v) = flat_window.quantile_mut::<Linear>(0.5) {
+            if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear{}) {
                 result
                     .get_mut([i + r_offset, j + c_offset, k])
                     .map(|r| *r = v);
