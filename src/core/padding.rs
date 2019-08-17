@@ -1,5 +1,6 @@
 use crate::core::{ColourModel, Image};
 use ndarray::{prelude::*, s};
+use num_traits::identities::Zero;
 use std::marker::PhantomData;
 
 /// Defines a method for padding the data of an image applied directly to the
@@ -24,9 +25,13 @@ pub struct ConstantPadding<T>(T)
 where
     T: Copy;
 
+/// Pad the image with zeros. Uses ConstantPadding internally
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
+pub struct ZeroPadding;
+
 impl<T> PaddingStrategy<T> for NoPadding
 where
-    T: Copy + Sized,
+    T: Copy,
 {
     fn pad(&self, image: ArrayView3<T>, _padding: (usize, usize)) -> Array3<T> {
         image.to_owned()
@@ -35,7 +40,7 @@ where
 
 impl<T> PaddingStrategy<T> for ConstantPadding<T>
 where
-    T: Copy + Sized,
+    T: Copy,
 {
     fn pad(&self, image: ArrayView3<T>, padding: (usize, usize)) -> Array3<T> {
         let shape = (
@@ -57,11 +62,19 @@ where
     }
 }
 
-/// Padding extension for images
-pub trait PaddingExt
+
+impl<T> PaddingStrategy<T> for ZeroPadding
 where
-    Self: Sized,
+    T: Copy + Zero,
 {
+    fn pad(&self, image: ArrayView3<T>, padding: (usize, usize)) -> Array3<T> {
+        let padder = ConstantPadding(T::zero());
+        padder.pad(image, padding)
+    }
+}
+
+/// Padding extension for images
+pub trait PaddingExt {
     /// Data type for container
     type Data;
     /// Pad the object with the given padding and strategy
@@ -70,7 +83,7 @@ where
 
 impl<T> PaddingExt for Array3<T>
 where
-    T: Copy + Sized,
+    T: Copy,
 {
     type Data = T;
 
@@ -81,7 +94,7 @@ where
 
 impl<T, C> PaddingExt for Image<T, C>
 where
-    T: Copy + Sized,
+    T: Copy,
     C: ColourModel,
 {
     type Data = T;
@@ -126,6 +139,8 @@ mod tests {
         assert_eq!(p, exp);
 
         let p = i.pad((2, 0), &ConstantPadding(0));
+        let z = i.pad((2, 0), &ZeroPadding{});
+        assert_eq!(p, z);
 
         let exp = Image::<u8, Gray>::from_shape_data(
             7,
