@@ -7,6 +7,7 @@
 
 ### Changed
 * Integrated Padding strategies into convolutions
+* Updated `ndarray-stats` to 0.2.0 adding `noisy_float` for median change
 
 ### Removed 
 
