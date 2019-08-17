@@ -1,4 +1,3 @@
-
 /// Implementation of a Canny Edge Detector and associated types
 pub mod canny;
 /// Image convolutions in 2D
@@ -26,7 +25,7 @@ pub enum Error {
     /// Invalid dimensions to an algorithm - this includes rows and columns and
     /// relationships between the two
     InvalidDimensions,
-    /// An invalid parameter has been supplied to an algorithm. 
+    /// An invalid parameter has been supplied to an algorithm.
     InvalidParameter,
     /// Numeric error such as an invalid conversion or issues in floating point
     /// math. As `ndarray` and `ndarray-vision` rely on `num_traits` for a lot

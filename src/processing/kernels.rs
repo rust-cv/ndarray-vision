@@ -36,7 +36,7 @@ pub trait FixedDimensionKernelBuilder<T> {
 }
 
 /// Create a Laplacian filter, this provides the 2nd spatial derivative of an
-/// image. 
+/// image.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct LaplaceFilter;
 
@@ -101,7 +101,7 @@ where
     T: Copy + Clone + FromPrimitive + Num,
 {
     /// The parameter for the Gaussian filter is the horizontal and vertical
-    /// covariances to form the covariance matrix. 
+    /// covariances to form the covariance matrix.
     /// ```ignore
     /// [ Params[0], 0]
     /// [ 0, Params[1]]

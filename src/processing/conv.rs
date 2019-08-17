@@ -6,29 +6,12 @@ use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
 
-pub struct NoPadding;
-pub struct ZeroPadding;
-pub struct ExtendPadding;
-
-pub trait ImagePadder where Self: Sized + Copy {
-    type Data;
-
-    fn pad(&self, pad_size: (usize, usize)) -> Self;
-}
-
-
-impl<T> ImagePadder<T> for NoPadding {
-    fn pad(&self, pad_size: (usize, usize)) -> Self {
-        *self
-    }
-}
-
 /// Perform image convolutions
 pub trait ConvolutionExt
 where
     Self: Sized,
 {
-    /// Underlying data type to perform the colution on
+    /// Underlying data type to perform the convolution on
     type Data;
 
     /// Perform a convolution returning the resultant data

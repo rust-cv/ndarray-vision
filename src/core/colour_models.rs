@@ -26,7 +26,7 @@ pub struct HSI;
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct HSL;
 /// YCrCb represents an image as luma, red-difference chroma and blue-difference
-/// chroma. 
+/// chroma.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct YCrCb;
 /// CIE XYZ standard - assuming a D50 reference white
@@ -34,7 +34,7 @@ pub struct YCrCb;
 pub struct CIEXYZ;
 /// CIE LAB (also known as CIE L*a*b* or Lab) a colour model that represents
 /// colour as lightness, and a* and b* as the green-red and blue-yellow colour
-/// differences respectively. It is designed to be representative of human 
+/// differences respectively. It is designed to be representative of human
 /// perception of colour
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct CIELAB;
@@ -917,5 +917,4 @@ mod tests {
             assert_eq!(large.data.slice(s![.., .., i]), zeros);
         }
     }
-
 }
