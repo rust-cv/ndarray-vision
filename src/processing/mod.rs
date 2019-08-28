@@ -9,12 +9,15 @@ pub mod filter;
 pub mod kernels;
 /// Sobel operator for edge detection
 pub mod sobel;
+/// Thresholding functions
+pub mod threshold;
 
 pub use canny::*;
 pub use conv::*;
 pub use filter::*;
 pub use kernels::*;
 pub use sobel::*;
+pub use threshold::*;
 
 /// Common error type for image processing algorithms
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
