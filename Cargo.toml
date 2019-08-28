@@ -19,3 +19,6 @@ num-traits = "0.2"
 [dev-dependencies]
 ndarray-rand = "0.9.0"
 rand = "0.6.5"
+assert_approx_eq = "1.1.0"
+noisy_float = "0.1.11"
+debugit = "0.1.2"
