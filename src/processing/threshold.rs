@@ -78,9 +78,9 @@ where
 ///
 /// Calculates Otsu's threshold 
 /// Works per channel, but currently 
-/// assumes grayscale, i.e. single channel; otherwise need to 
-/// output all 3 values, or something!). 
-/// Todo: Add optioal nbins
+/// assumes grayscale (see the error above if number of channels is > 1
+/// i.e. single channel; otherwise we need to output all 3 threshold values). 
+/// Todo: Add optional nbins
 ///
 fn calculate_threshold_otsu<T>(mat: &Array3<T>) -> Result<f64, Error>
 where
@@ -104,14 +104,8 @@ where
         let counts = hist.counts(); 
         let total = counts.sum().to_f64().unwrap();
         let counts = Array::from_iter(counts.iter());
-        // TODO: Could use the following for skimage-esque implementation 
-        // using CDFs 
-        // get cdf 
-        //let mut running_total = 0;
-        //let cdf = hist.counts().mapv(|x| {
-        //    running_total += x;
-        //    running_total as f32
-        //});
+        // NOTE: Could use the cdf generation for skimage-esque implementation 
+        // which entails a cumulative sum of the standard histogram 
         let mut sum_b = 0.0;
         let mut weight_b = 0.0;
         let mut maximum = 0.0;
@@ -120,7 +114,6 @@ where
         for (index, count) in counts.indexed_iter(){
             sum_intensity += (index as f64) * (*count).to_f64().unwrap();
         }
-        println!("Sum1: {:?}", sum_intensity);
         for (index, count) in counts.indexed_iter(){
             weight_b = weight_b + count.to_f64().unwrap();
             sum_b = sum_b + (index as f64)* count.to_f64().unwrap();
