@@ -4,6 +4,7 @@
 
 ### Added
 * Padding strategies (`NoPadding`, `ConstantPadding`, `ZeroPadding`)
+* Threshold module with Otsu and Mean threshold algorithms
 
 ### Changed
 * Integrated Padding strategies into convolutions
