@@ -32,7 +32,7 @@ where
         let mut result = Array3::<T>::zeros(self.dim());
         Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
-            if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear{}) {
+            if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear {}) {
                 result
                     .get_mut([i + r_offset, j + c_offset, k])
                     .map(|r| *r = v);
