@@ -71,7 +71,7 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
     if leftmost < 0 {
         leftmost = 0;
-    } 
+    }
     if topmost < 0 {
         topmost = 0;
     }
@@ -121,7 +121,7 @@ where
                         result
                             .slice_mut(s![r, c, ..])
                             .assign(&self.slice(s![y, x, ..]));
-                    } 
+                    }
                 }
             }
             Ok(result)
