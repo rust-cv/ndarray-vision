@@ -27,10 +27,6 @@ pub fn translation(x: f64, y: f64) -> Array2<f64> {
     array![[1.0, 0.0, x], [0.0, 1.0, y], [0.0, 0.0, 1.0]]
 }
 
-pub fn scale_2d(x: f64, y: f64) -> Array2<f64> {
-    array![[x, 0.0, 0.0], [0.0, y, 0.0], [0.0, 0.0, 1.0]]
-}
-
 pub fn scale(x: f64, y: f64) -> Array2<f64> {
     array![[x, 0.0, 0.0], [0.0, y, 0.0], [0.0, 0.0, 1.0]]
 }

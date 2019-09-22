@@ -65,11 +65,16 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let br = (br.0 as isize, br.1 as isize);
     let bl = (bl.0 as isize, bl.1 as isize);
 
-    let leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
-    let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
+    let mut leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
+    let mut topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
     let rightmost = max(max(tl.0, tr.0), max(br.0, bl.0));
     let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
-
+    if leftmost < 0 {
+        leftmost = 0;
+    } 
+    if topmost < 0 {
+        topmost = 0;
+    }
     Rect {
         x: leftmost as usize,
         y: topmost as usize,
@@ -103,7 +108,6 @@ where
             let transform = transform
                 .inv()
                 .map_err(|_| Error::NonInvertibleTransformation)?;
-
             for r in 0..result.shape()[0] {
                 for c in 0..result.shape()[1] {
                     let (x, y) = source_coordinate((c as f64, r as f64), transform.view());
@@ -111,13 +115,13 @@ where
                     let y = y.round() as isize;
                     if x >= 0
                         && y >= 0
-                        && (x as usize) < result.shape()[1]
-                        && (y as usize) < result.shape()[0]
+                        && (x as usize) < self.shape()[1]
+                        && (y as usize) < self.shape()[0]
                     {
                         result
                             .slice_mut(s![r, c, ..])
                             .assign(&self.slice(s![y, x, ..]));
-                    }
+                    } 
                 }
             }
             Ok(result)
