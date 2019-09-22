@@ -12,6 +12,7 @@ edition = "2018"
 
 [dependencies]
 ndarray = "0.12"
+ndarray-linalg = "0.11"
 ndarray-stats = "0.2"
 noisy_float = "0.1"
 num-traits = "0.2"
@@ -19,3 +20,4 @@ num-traits = "0.2"
 [dev-dependencies]
 ndarray-rand = "0.9.0"
 rand = "0.6.5"
+openblas-src = "0.7"
