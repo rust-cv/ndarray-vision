@@ -32,11 +32,9 @@ fn main() {
     let lena = get_lena().expect("Couldn't load lena");
 
     // Create transformation matrix
-    let x = 0.5 * (lena.cols() as f64);
-    let y = 0.5 * (lena.rows() as f64);
-    let trans = translation(x, y)
-        .dot(&rotation_3d(FRAC_PI_4, Axes::Z))
-        .dot(&translation(-x, -y))
+    let x = 0.5 * (lena.cols() as f64) - 0.5;
+    let y = 0.5 * (lena.rows() as f64) - 0.5;
+    let trans = rotate_around_centre(FRAC_PI_4, (x, y))
         .dot(&scale(0.7, 0.7));
 
     let transformed = lena

@@ -6,6 +6,12 @@ pub enum Axes {
     Z,
 }
 
+pub fn rotate_around_centre(radians: f64, centre: (f64, f64)) -> Array2<f64> {
+    translation(centre.0, centre.1)
+        .dot(&rotation_3d(radians, Axes::Z))
+        .dot(&translation(-centre.0, -centre.1))
+}
+
 pub fn rotation_2d(radians: f64) -> Array2<f64> {
     let s = radians.sin();
     let c = radians.cos();

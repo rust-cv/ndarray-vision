@@ -171,4 +171,9 @@ mod tests {
 
         assert_eq!(expected, res)
     }
+
+    #[test]
+    fn rotate() {
+        let src = Image::<u8, Gray>::from_shape_data(5, 5, (0..25).collect());
+    }
 }
