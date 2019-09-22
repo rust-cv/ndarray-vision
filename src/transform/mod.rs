@@ -60,10 +60,10 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let br = source_coordinate(dims, transform);
     let bl = source_coordinate((dims.0, 0.0), transform);
 
-    let tl = (tl.0 as usize, tl.1 as usize);
-    let tr = (tr.0 as usize, tr.1 as usize);
-    let br = (br.0 as usize, br.1 as usize);
-    let bl = (bl.0 as usize, bl.1 as usize);
+    let tl = (tl.0 as isize, tl.1 as isize);
+    let tr = (tr.0 as isize, tr.1 as isize);
+    let br = (br.0 as isize, br.1 as isize);
+    let bl = (bl.0 as isize, bl.1 as isize);
 
     let leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
     let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
@@ -71,10 +71,10 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
 
     Rect {
-        x: leftmost,
-        y: topmost,
-        w: rightmost - leftmost,
-        h: bottommost - topmost,
+        x: leftmost as usize,
+        y: topmost as usize,
+        w: (rightmost - leftmost) as usize,
+        h: (bottommost - topmost) as usize,
     }
 }
 
@@ -91,9 +91,6 @@ where
         if !(shape[0] == 3 || shape[0] == 2) {
             Err(Error::InvalidTransformation)
         } else {
-            let transform = transform
-                .inv()
-                .map_err(|_| Error::NonInvertibleTransformation)?;
             let mut result = match output_size {
                 Some((r, c)) => Self::zeros((r, c, self.shape()[2])),
                 None => {
@@ -102,6 +99,11 @@ where
                     Self::zeros((bounds.h, bounds.w, self.shape()[2]))
                 }
             };
+
+            let transform = transform
+                .inv()
+                .map_err(|_| Error::NonInvertibleTransformation)?;
+
             for r in 0..result.shape()[0] {
                 for c in 0..result.shape()[1] {
                     let (x, y) = source_coordinate((c as f64, r as f64), transform.view());
