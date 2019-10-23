@@ -304,13 +304,14 @@ mod tests {
 
     #[test]
     fn test_laplace_filters() {
-        let standard = LaplaceFilter::build().unwrap();
+        let standard: Array3<i64> = LaplaceFilter::build().unwrap();
         assert_eq!(
             standard,
             arr3(&[[[0], [-1], [0]], [[-1], [4], [-1]], [[0], [-1], [0]]])
         );
 
-        let standard = LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
+        let standard: Array3<i64> =
+            LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
         assert_eq!(
             standard,
             arr3(&[[[-1], [-1], [-1]], [[-1], [8], [-1]], [[-1], [-1], [-1]]])

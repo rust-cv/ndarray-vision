@@ -3,6 +3,7 @@ use ndarray::prelude::*;
 use ndarray_stats::{histogram::Grid, HistogramExt};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::{Num, NumAssignOps};
+use std::iter::FromIterator;
 
 /// Extension trait to implement histogram equalisation on other types
 pub trait HistogramEqExt<A>
