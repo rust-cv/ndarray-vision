@@ -1,5 +1,5 @@
 use crate::core::{ColourModel, Image};
-use ndarray::{array, prelude::*, s};
+use ndarray::{array, prelude::*, s, Data};
 use ndarray_linalg::solve::Inverse;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
@@ -17,11 +17,13 @@ pub trait TransformExt
 where
     Self: Sized,
 {
+    type Output;
+
     fn transform(
         &self,
         transform: ArrayView2<f64>,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self, Error>;
+    ) -> Result<Self::Output, Error>;
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -83,25 +85,28 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     }
 }
 
-impl<T> TransformExt for Array3<T>
+impl<T, U> TransformExt for ArrayBase<U, Ix3>
 where
     T: Copy + Clone + Num + NumAssignOps,
+    U: Data<Elem = T>,
 {
+    type Output = Array3<T>;
+
     fn transform(
         &self,
         transform: ArrayView2<f64>,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self::Output, Error> {
         let shape = transform.shape();
         if !(shape[0] == 3 || shape[0] == 2) {
             Err(Error::InvalidTransformation)
         } else {
             let mut result = match output_size {
-                Some((r, c)) => Self::zeros((r, c, self.shape()[2])),
+                Some((r, c)) => Self::Output::zeros((r, c, self.shape()[2])),
                 None => {
                     let dims = (self.shape()[0] as f64, self.shape()[1] as f64);
                     let bounds = bounding_box(dims, transform.view());
-                    Self::zeros((bounds.h, bounds.w, self.shape()[2]))
+                    Self::Output::zeros((bounds.h, bounds.w, self.shape()[2]))
                 }
             };
 
@@ -134,11 +139,13 @@ where
     T: Copy + Clone + Num + NumAssignOps,
     C: ColourModel,
 {
+    type Output = Self;
+
     fn transform(
         &self,
         transform: ArrayView2<f64>,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self::Output, Error> {
         let data = self.data.transform(transform, output_size)?;
         Ok(Self {
             data,

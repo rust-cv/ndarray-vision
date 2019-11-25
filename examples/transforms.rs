@@ -34,8 +34,7 @@ fn main() {
     // Create transformation matrix
     let x = 0.5 * (lena.cols() as f64) - 0.5;
     let y = 0.5 * (lena.rows() as f64) - 0.5;
-    let trans = rotate_around_centre(FRAC_PI_4, (x, y))
-        .dot(&scale(0.7, 0.7));
+    let trans = rotate_around_centre(FRAC_PI_4, (x, y)).dot(&scale(0.7, 0.7));
 
     let transformed = lena
         .transform(trans.view(), None)
