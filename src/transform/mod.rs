@@ -161,6 +161,7 @@ mod tests {
     use super::affine;
     use super::*;
     use crate::core::colour_models::Gray;
+    use std::f64::consts::PI;
 
     #[test]
     fn translation() {
@@ -182,5 +183,19 @@ mod tests {
     #[test]
     fn rotate() {
         let src = Image::<u8, Gray>::from_shape_data(5, 5, (0..25).collect());
+        let trans = affine::rotate_around_centre(PI, (2.0, 2.0));
+        let upside_down = src.transform(trans.view(), Some((5, 5))).unwrap();
+
+        let res = upside_down.transform(trans.view(), Some((5, 5))).unwrap();
+
+        assert_eq!(src, res);
+
+        let trans_2 = affine::rotate_around_centre(PI / 2.0, (2.0, 2.0));
+        let trans_3 = affine::rotate_around_centre(-PI / 2.0, (2.0, 2.0));
+
+        let upside_down_sideways = upside_down.transform(trans_2.view(), Some((5, 5))).unwrap();
+        let src_sideways = src.transform(trans_3.view(), Some((5, 5))).unwrap();
+
+        assert_eq!(upside_down_sideways, src_sideways);
     }
 }
