@@ -1,4 +1,5 @@
 use crate::core::{ColourModel, Image};
+use crate::transform::affine::translation;
 use ndarray::{array, prelude::*, s, Data};
 use ndarray_linalg::solve::Inverse;
 use num_traits::{Num, NumAssignOps};
@@ -26,10 +27,10 @@ where
     ) -> Result<Self::Output, Error>;
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct Rect {
-    x: usize,
-    y: usize,
+    x: isize,
+    y: isize,
     w: usize,
     h: usize,
 }
@@ -62,24 +63,18 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let br = source_coordinate(dims, transform);
     let bl = source_coordinate((dims.0, 0.0), transform);
 
-    let tl = (tl.0 as isize, tl.1 as isize);
-    let tr = (tr.0 as isize, tr.1 as isize);
-    let br = (br.0 as isize, br.1 as isize);
-    let bl = (bl.0 as isize, bl.1 as isize);
+    let tl = (tl.0.round() as isize, tl.1.round() as isize);
+    let tr = (tr.0.round() as isize, tr.1.round() as isize);
+    let br = (br.0.round() as isize, br.1.round() as isize);
+    let bl = (bl.0.round() as isize, bl.1.round() as isize);
 
-    let mut leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
-    let mut topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
+    let leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
+    let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
     let rightmost = max(max(tl.0, tr.0), max(br.0, bl.0));
     let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
-    if leftmost < 0 {
-        leftmost = 0;
-    }
-    if topmost < 0 {
-        topmost = 0;
-    }
     Rect {
-        x: leftmost as usize,
-        y: topmost as usize,
+        x: leftmost,
+        y: topmost,
         w: (rightmost - leftmost) as usize,
         h: (bottommost - topmost) as usize,
     }
@@ -101,16 +96,23 @@ where
         if !(shape[0] == 3 || shape[0] == 2) {
             Err(Error::InvalidTransformation)
         } else {
-            let mut result = match output_size {
-                Some((r, c)) => Self::Output::zeros((r, c, self.shape()[2])),
+            let (mut result, new_transform) = match output_size {
+                Some((r, c)) => (
+                    Self::Output::zeros((r, c, self.shape()[2])),
+                    transform.into_owned(),
+                ),
                 None => {
                     let dims = (self.shape()[0] as f64, self.shape()[1] as f64);
                     let bounds = bounding_box(dims, transform.view());
-                    Self::Output::zeros((bounds.h, bounds.w, self.shape()[2]))
+                    let new_trans = translation(bounds.x as f64, -bounds.y as f64).dot(&transform);
+                    (
+                        Self::Output::zeros((bounds.h, bounds.w, self.shape()[2])),
+                        new_trans,
+                    )
                 }
             };
 
-            let transform = transform
+            let transform = new_transform
                 .inv()
                 .map_err(|_| Error::NonInvertibleTransformation)?;
             for r in 0..result.shape()[0] {
