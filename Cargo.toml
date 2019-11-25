@@ -13,6 +13,7 @@ edition = "2018"
 [dependencies]
 ndarray = "0.13"
 ndarray-stats = "0.3"
+ndarray-linalg = "0.12"
 noisy_float = "0.1"
 num-traits = "0.2"
 
@@ -21,3 +22,5 @@ ndarray-rand = "0.11.0"
 rand = "0.7"
 assert_approx_eq = "1.1.0"
 noisy_float = "0.1.11"
+openblas-src = "0.7"
+png = "0.15"

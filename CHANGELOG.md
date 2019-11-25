@@ -5,10 +5,12 @@
 ### Added
 * Padding strategies (`NoPadding`, `ConstantPadding`, `ZeroPadding`)
 * Threshold module with Otsu and Mean threshold algorithms
+* Image transformations and functions to create affine transform matrices
 
 ### Changed
 * Integrated Padding strategies into convolutions
 * Updated `ndarray-stats` to 0.2.0 adding `noisy_float` for median change
+* [INTERNAL] Disabled code coverage due to issues with tarpaulin and native libraries
 
 ### Removed 
 

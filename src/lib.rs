@@ -33,3 +33,5 @@ pub mod enhancement;
 pub mod format;
 /// Image processing intrinsics and common filters/algorithms.
 pub mod processing;
+/// Image transforms and warping
+pub mod transform;
