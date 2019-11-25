@@ -18,8 +18,11 @@ pub trait TransformExt
 where
     Self: Sized,
 {
+    /// Output type for the operation
     type Output;
 
+    /// Transforms an image given the transformation matrix and output size.
+    /// Assume nearest-neighbour interpolation
     fn transform(
         &self,
         transform: ArrayView2<f64>,
@@ -199,5 +202,15 @@ mod tests {
         let src_sideways = src.transform(trans_3.view(), Some((5, 5))).unwrap();
 
         assert_eq!(upside_down_sideways, src_sideways);
+    }
+
+    #[test]
+    fn scale() {
+        let src = Image::<u8, Gray>::from_shape_data(4, 4, (0..16).collect());
+        let trans = affine::scale(0.5, 2.0);
+        let res = src.transform(trans.view(), None).unwrap();
+
+        assert_eq!(res.rows(), 8);
+        assert_eq!(res.cols(), 2);
     }
 }
