@@ -4,7 +4,6 @@ use ndarray::{array, prelude::*, s, Data, OwnedRepr};
 use ndarray_linalg::solve::Inverse;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
-use std::marker::PhantomData;
 
 pub mod affine;
 

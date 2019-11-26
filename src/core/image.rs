@@ -90,13 +90,13 @@ where
     }
 }
 
-impl<T, C> Image<T, C>
+impl<T, U, C> Image<T, C>
 where
-    T: Data,
+    T: Data<Elem = U>,
     C: ColourModel,
 {
     /// Construct the image from a given Array3
-    pub fn from_data(data: Array3<T>) -> Self {
+    pub fn from_data(data: ArrayBase<T, Ix3>) -> Self {
         Image {
             data,
             model: PhantomData,
@@ -124,6 +124,15 @@ where
     /// Get a mutable view of a pixels colour channels given a location
     pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
         self.data.slice_mut(s![row, col, ..])
+    }
+
+    pub fn into_type_raw<U2, C2>(self) -> Image<U2, C>
+    where
+        U2: Data<Elem = U>,
+        C2: ColourModel,
+    {
+        assert_eq!(C2::channels(), C::channels());
+        Image::<U2, C2>::from_data(self.data)
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::core::*;
-use ndarray::{prelude::*, Data};
+use ndarray::{prelude::*, Data, DataMut};
 use ndarray_stats::{histogram::Grid, HistogramExt};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::{Num, NumAssignOps};
@@ -21,7 +21,7 @@ where
 
 impl<T, U> HistogramEqExt<T> for ArrayBase<U, Ix3>
 where
-    U: Data<Elem = T>,
+    U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
 {
     fn equalise_hist(&self, grid: Grid<T>) -> Self {

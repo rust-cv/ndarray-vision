@@ -46,8 +46,9 @@ where
     Ok((h_deriv, v_deriv))
 }
 
-impl<T> SobelExt for Array3<T>
+impl<T, U> SobelExt for ArrayBase<U, Ix3>
 where
+    U: Data<Elem=T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     type Output = ArrayBase<OwnedRepr<T>, Ix3>;
@@ -68,10 +69,13 @@ where
     }
 }
 
-impl<T> FullSobelExt for Array3<T>
+impl<T, U> FullSobelExt for ArrayBase<U, Ix3>
 where
+    U: Data<Elem=T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
+
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 

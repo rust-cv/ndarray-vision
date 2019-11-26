@@ -182,7 +182,7 @@ where
     (red, green, blue)
 }
 
-impl<U, T> From<Image<U, RGB>> for Image<U, HSV>
+impl<U, T> From<Image<U, RGB>> for Image<OwnedRepr<T>, HSV>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -196,7 +196,7 @@ where
         + PixelBound,
 {
     fn from(image: Image<U, RGB>) -> Self {
-        let mut res = Array3::<T>::zeros((image.rows(), image.cols(), HSV::channels()));
+        let mut res = Array3::<_>::zeros((image.rows(), image.cols(), HSV::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
         Zip::indexed(window).apply(|(i, j, _), pix| {
@@ -211,7 +211,7 @@ where
     }
 }
 
-impl<T, U> From<Image<U, HSV>> for Image<U, RGB>
+impl<T, U> From<Image<U, HSV>> for Image<OwnedRepr<T>, RGB>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -240,7 +240,7 @@ where
     }
 }
 
-impl<T, U> From<Image<U, RGB>> for Image<U, Gray>
+impl<T, U> From<Image<U, RGB>> for Image<OwnedRepr<T>, Gray>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -271,7 +271,7 @@ where
     }
 }
 
-impl<T, U> From<Image<U, Gray>> for Image<U, RGB>
+impl<T, U> From<Image<U, Gray>> for Image<OwnedRepr<T>, RGB>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -298,7 +298,7 @@ where
     }
 }
 
-impl<T, U> From<Image<U, RGB>> for Image<U, CIEXYZ>
+impl<T, U> From<Image<U, RGB>> for Image<OwnedRepr<T>, CIEXYZ>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -337,7 +337,7 @@ where
     }
 }
 
-impl<T, U> From<Image<U, CIEXYZ>> for Image<U, RGB>
+impl<T, U> From<Image<U, CIEXYZ>> for Image<OwnedRepr<T>, RGB>
 where
     U: Data<Elem = T>,
     T: Copy
@@ -376,27 +376,27 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, RGB>
+impl<S, T> From<Image<T, Generic3>> for Image<OwnedRepr<S>, RGB>
 where
-    T: Data,
+    T: Data<Elem = S>,
+{
+    fn from(image: Image<T, Generic3>) -> Self {
+        image.into_type_raw()
+    }
+}
+
+impl<S, T> From<Image<T, Generic3>> for Image<T, HSV>
+where
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, HSV>
+impl<S, T> From<Image<T, Generic3>> for Image<OwnedRepr<S>, HSI>
 where
-    T: Data,
-{
-    fn from(image: Image<T, Generic3>) -> Self {
-        Self::from_data(image.data)
-    }
-}
-
-impl<T> From<Image<T, Generic3>> for Image<T, HSI>
-where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
@@ -475,63 +475,63 @@ where
     }
 }
 
-impl<T> From<Image<T, HSV>> for Image<T, Generic3>
+impl<S, T> From<Image<T, HSV>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, HSV>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, HSI>> for Image<T, Generic3>
+impl<S, T> From<Image<T, HSI>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, HSI>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, HSL>> for Image<T, Generic3>
+impl<S, T> From<Image<T, HSL>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, HSL>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, YCrCb>> for Image<T, Generic3>
+impl<S, T> From<Image<T, YCrCb>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, YCrCb>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIEXYZ>> for Image<T, Generic3>
+impl<S, T> From<Image<T, CIEXYZ>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, CIEXYZ>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIELAB>> for Image<T, Generic3>
+impl<S, T> From<Image<T, CIELAB>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, CIELAB>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIELUV>> for Image<T, Generic3>
+impl<S, T> From<Image<T, CIELUV>> for Image<OwnedRepr<S>, Generic3>
 where
-    T: Data,
+    T: Data<Elem = S>,
 {
     fn from(image: Image<T, CIELUV>) -> Self {
         Self::from_data(image.data)

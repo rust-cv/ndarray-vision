@@ -111,7 +111,7 @@ where
     type Data = T;
     type Output = Image<OwnedRepr<T>, C>;
 
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error> {
         let data = self.data.conv2d(kernel)?;
         Ok(Self {
             data,
