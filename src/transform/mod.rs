@@ -1,6 +1,6 @@
 use crate::core::{ColourModel, Image};
 use crate::transform::affine::translation;
-use ndarray::{array, prelude::*, s, Data};
+use ndarray::{array, prelude::*, s, Data, OwnedRepr};
 use ndarray_linalg::solve::Inverse;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
@@ -88,7 +88,7 @@ where
     T: Copy + Clone + Num + NumAssignOps,
     U: Data<Elem = T>,
 {
-    type Output = Array3<T>;
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
     fn transform(
         &self,
@@ -139,12 +139,13 @@ where
     }
 }
 
-impl<T, C> TransformExt for Image<T, C>
+impl<T, U, C> TransformExt for Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
     C: ColourModel,
 {
-    type Output = Self;
+    type Output = Image<OwnedRepr<T>, C>;
 
     fn transform(
         &self,
@@ -152,10 +153,7 @@ where
         output_size: Option<(usize, usize)>,
     ) -> Result<Self::Output, Error> {
         let data = self.data.transform(transform, output_size)?;
-        Ok(Self {
-            data,
-            model: PhantomData,
-        })
+        Ok(Self::from_array(data))
     }
 }
 

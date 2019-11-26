@@ -1,5 +1,5 @@
 use crate::core::{ColourModel, Image};
-use ndarray::{prelude::*, s};
+use ndarray::{prelude::*, s, Data};
 use num_traits::identities::Zero;
 use std::marker::PhantomData;
 
@@ -80,8 +80,9 @@ pub trait PaddingExt {
     fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<Self::Data>) -> Self;
 }
 
-impl<T> PaddingExt for Array3<T>
+impl<T, U> PaddingExt for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
     type Data = T;
@@ -91,8 +92,9 @@ where
     }
 }
 
-impl<T, C> PaddingExt for Image<T, C>
+impl<T, U, C> PaddingExt for Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy,
     C: ColourModel,
 {

@@ -1,7 +1,7 @@
 use crate::core::{ColourModel, Image};
 use crate::processing::*;
 use ndarray::prelude::*;
-use ndarray::IntoDimension;
+use ndarray::{Data, IntoDimension, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::collections::HashSet;
 use std::marker::PhantomData;
@@ -38,12 +38,13 @@ pub struct CannyParameters<T> {
     pub t2: T,
 }
 
-impl<T, C> CannyEdgeDetectorExt<T> for Image<T, C>
+impl<T, U, C> CannyEdgeDetectorExt<T> for Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
     C: ColourModel,
 {
-    type Output = Image<bool, C>;
+    type Output = Image<OwnedRepr<bool>, C>;
 
     fn canny_edge_detector(&self, params: CannyParameters<T>) -> Result<Self::Output, Error> {
         let data = self.data.canny_edge_detector(params)?;
@@ -54,8 +55,9 @@ where
     }
 }
 
-impl<T> CannyEdgeDetectorExt<T> for Array3<T>
+impl<T, U> CannyEdgeDetectorExt<T> for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
 {
     type Output = Array3<bool>;

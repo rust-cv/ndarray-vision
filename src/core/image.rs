@@ -1,7 +1,7 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
-use ndarray::s;
+use ndarray::{s, Data};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::Num;
 use std::marker::PhantomData;
@@ -11,6 +11,7 @@ use std::marker::PhantomData;
 pub struct Image<T, C>
 where
     C: ColourModel,
+    T: Data,
 {
     /// Images are always going to be 3D to handle rows, columns and colour
     /// channels
@@ -20,19 +21,21 @@ where
     /// number of channels in an image as this may cause other functionality to
     /// perform incorrectly. Use conversions to one of the `Generic` colour models
     /// instead.
-    pub data: Array3<T>,
+    pub data: ArrayBase<T, Ix3>,
     /// Representation of how colour is encoded in the image
     pub(crate) model: PhantomData<C>,
 }
 
-impl<T, C> Image<T, C>
+impl<T, U, C> Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     C: ColourModel,
 {
     /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2>(self) -> Image<T2, C>
+    pub fn into_type<T2, U2>(self) -> Image<U2, C>
     where
+        U2: Data<Elem = T2>,
         T2: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     {
         let rescale = |x: &T| {
@@ -43,12 +46,13 @@ where
             T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
         };
         let data = self.data.map(rescale);
-        Image::<T2, C>::from_data(data)
+        Image::<U2, C>::from_data(data)
     }
 }
 
-impl<T, C> Image<T, C>
+impl<T, C, U> Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Clone + Num,
     C: ColourModel,
 {
@@ -73,10 +77,22 @@ where
             model: PhantomData,
         }
     }
+
+    /// Create an image given an existing ndarray
+    pub fn from_array<V>(data: ArrayBase<V, Ix3>) -> Self
+    where
+        V: Data<Elem = T>,
+    {
+        Image {
+            data,
+            model: PhantomData,
+        }
+    }
 }
 
 impl<T, C> Image<T, C>
 where
+    T: Data,
     C: ColourModel,
 {
     /// Construct the image from a given Array3

@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::processing::*;
 use core::ops::Neg;
-use ndarray::prelude::*;
+use ndarray::{prelude::*, Data, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -13,15 +13,25 @@ where
     /// Type to output
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
-    fn apply_sobel(&self) -> Result<Self, Error>;
+    fn apply_sobel(&self) -> Result<Self::Output, Error>;
+}
 
+pub trait FullSobelExt
+where
+    Self: Sized,
+{
+    /// Type to output
+    type Output;
     /// Returns the magntitude and rotation outputs for use in other algorithms
     /// like the Canny edge detector. Rotation is in radians
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
 }
 
-fn get_edge_images<T>(mat: &Array3<T>) -> Result<(Array3<T>, Array3<T>), Error>
+fn get_edge_images<T, U>(
+    mat: &ArrayBase<U, Ix3>,
+) -> Result<(ArrayBase<OwnedRepr<T>, Ix3>, ArrayBase<OwnedRepr<T>, Ix3>), Error>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     let v_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
@@ -40,9 +50,9 @@ impl<T> SobelExt for Array3<T>
 where
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
-    type Output = Self;
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
-    fn apply_sobel(&self) -> Result<Self, Error> {
+    fn apply_sobel(&self) -> Result<Self::Output, Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
         let h_deriv = h_deriv.mapv(|x| x.powi(2));
@@ -56,7 +66,12 @@ where
 
         Ok(result)
     }
+}
 
+impl<T> FullSobelExt for Array3<T>
+where
+    T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
+{
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
@@ -71,17 +86,27 @@ where
     }
 }
 
-impl<T, C> SobelExt for Image<T, C>
+impl<T, U, C> SobelExt for Image<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
     C: ColourModel,
 {
-    type Output = Array3<T>;
+    type Output = Image<OwnedRepr<T>, C>;
 
     fn apply_sobel(&self) -> Result<Self, Error> {
         let data = self.data.apply_sobel()?;
         Ok(Image::from_data(data))
     }
+}
+
+impl<T, U, C> FullSobelExt for Image<U, C>
+where
+    U: Data<Elem = T>,
+    T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
+    C: ColourModel,
+{
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         self.data.full_sobel()

@@ -1,6 +1,6 @@
 use crate::core::traits::*;
 use crate::core::{normalise_pixel_value, Image};
-use ndarray::{prelude::*, s, Zip};
+use ndarray::{prelude::*, s, Data, OwnedRepr, Zip};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::convert::From;
@@ -182,8 +182,9 @@ where
     (red, green, blue)
 }
 
-impl<T> From<Image<T, RGB>> for Image<T, HSV>
+impl<U, T> From<Image<U, RGB>> for Image<U, HSV>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -194,7 +195,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, RGB>) -> Self {
+    fn from(image: Image<U, RGB>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), HSV::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -210,8 +211,9 @@ where
     }
 }
 
-impl<T> From<Image<T, HSV>> for Image<T, RGB>
+impl<T, U> From<Image<U, HSV>> for Image<U, RGB>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -222,7 +224,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, HSV>) -> Self {
+    fn from(image: Image<U, HSV>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -238,8 +240,9 @@ where
     }
 }
 
-impl<T> From<Image<T, RGB>> for Image<T, Gray>
+impl<T, U> From<Image<U, RGB>> for Image<U, Gray>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -250,7 +253,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, RGB>) -> Self {
+    fn from(image: Image<U, RGB>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), Gray::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -268,8 +271,9 @@ where
     }
 }
 
-impl<T> From<Image<T, Gray>> for Image<T, RGB>
+impl<T, U> From<Image<U, Gray>> for Image<U, RGB>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -280,7 +284,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, Gray>) -> Self {
+    fn from(image: Image<U, Gray>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -294,8 +298,9 @@ where
     }
 }
 
-impl<T> From<Image<T, RGB>> for Image<T, CIEXYZ>
+impl<T, U> From<Image<U, RGB>> for Image<U, CIEXYZ>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -306,7 +311,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, RGB>) -> Self {
+    fn from(image: Image<U, RGB>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), CIEXYZ::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -332,8 +337,9 @@ where
     }
 }
 
-impl<T> From<Image<T, CIEXYZ>> for Image<T, RGB>
+impl<T, U> From<Image<U, CIEXYZ>> for Image<U, RGB>
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -344,7 +350,7 @@ where
         + Display
         + PixelBound,
 {
-    fn from(image: Image<T, CIEXYZ>) -> Self {
+    fn from(image: Image<U, CIEXYZ>) -> Self {
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
@@ -370,241 +376,312 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, RGB> {
+impl<T> From<Image<T, Generic3>> for Image<T, RGB>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, HSV> {
+impl<T> From<Image<T, Generic3>> for Image<T, HSV>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, HSI> {
+impl<T> From<Image<T, Generic3>> for Image<T, HSI>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, HSL> {
+impl<T> From<Image<T, Generic3>> for Image<T, HSL>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, YCrCb> {
+impl<T> From<Image<T, Generic3>> for Image<T, YCrCb>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, CIEXYZ> {
+impl<T> From<Image<T, Generic3>> for Image<T, CIEXYZ>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, CIELAB> {
+impl<T> From<Image<T, Generic3>> for Image<T, CIELAB>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, CIELUV> {
+impl<T> From<Image<T, Generic3>> for Image<T, CIELUV>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic3>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic1>> for Image<T, Gray> {
+impl<T> From<Image<T, Generic1>> for Image<T, Gray>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic1>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic4>> for Image<T, RGBA> {
+impl<T> From<Image<T, Generic4>> for Image<T, RGBA>
+where
+    T: Data,
+{
     fn from(image: Image<T, Generic4>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, RGB>> for Image<T, Generic3> {
+impl<T> From<Image<T, RGB>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, RGB>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, HSV>> for Image<T, Generic3> {
+impl<T> From<Image<T, HSV>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, HSV>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, HSI>> for Image<T, Generic3> {
+impl<T> From<Image<T, HSI>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, HSI>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, HSL>> for Image<T, Generic3> {
+impl<T> From<Image<T, HSL>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, HSL>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, YCrCb>> for Image<T, Generic3> {
+impl<T> From<Image<T, YCrCb>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, YCrCb>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIEXYZ>> for Image<T, Generic3> {
+impl<T> From<Image<T, CIEXYZ>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, CIEXYZ>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIELAB>> for Image<T, Generic3> {
+impl<T> From<Image<T, CIELAB>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, CIELAB>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, CIELUV>> for Image<T, Generic3> {
+impl<T> From<Image<T, CIELUV>> for Image<T, Generic3>
+where
+    T: Data,
+{
     fn from(image: Image<T, CIELUV>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, RGBA>> for Image<T, Generic4> {
+impl<T> From<Image<T, RGBA>> for Image<T, Generic4>
+where
+    T: Data,
+{
     fn from(image: Image<T, RGBA>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Gray>> for Image<T, Generic1> {
+impl<T> From<Image<T, Gray>> for Image<T, Generic1>
+where
+    T: Data,
+{
     fn from(image: Image<T, Gray>) -> Self {
         Self::from_data(image.data)
     }
 }
 
-impl<T> From<Image<T, Generic5>> for Image<T, Generic4>
+impl<T, U> From<Image<U, Generic5>> for Image<U, Generic4>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic5>) -> Self {
+    fn from(image: Image<U, Generic5>) -> Self {
         let shape = (image.rows(), image.cols(), Generic4::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic5>> for Image<T, Generic3>
+impl<T, U> From<Image<U, Generic5>> for Image<U, Generic3>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic5>) -> Self {
+    fn from(image: Image<U, Generic5>) -> Self {
         let shape = (image.rows(), image.cols(), Generic3::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic5>> for Image<T, Generic2>
+impl<T, U> From<Image<U, Generic5>> for Image<U, Generic2>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic5>) -> Self {
+    fn from(image: Image<U, Generic5>) -> Self {
         let shape = (image.rows(), image.cols(), Generic2::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic5>> for Image<T, Generic1>
+impl<T, U> From<Image<U, Generic5>> for Image<U, Generic1>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic5>) -> Self {
+    fn from(image: Image<U, Generic5>) -> Self {
         let shape = (image.rows(), image.cols(), Generic1::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic4>> for Image<T, Generic3>
+impl<T, U> From<Image<U, Generic4>> for Image<U, Generic3>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic4>) -> Self {
+    fn from(image: Image<U, Generic4>) -> Self {
         let shape = (image.rows(), image.cols(), Generic3::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic4>> for Image<T, Generic2>
+impl<T, U> From<Image<U, Generic4>> for Image<U, Generic2>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic4>) -> Self {
+    fn from(image: Image<U, Generic4>) -> Self {
         let shape = (image.rows(), image.cols(), Generic2::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic4>> for Image<T, Generic1>
+impl<T, U> From<Image<U, Generic4>> for Image<OwnedRepr<T>, Generic1>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic4>) -> Self {
+    fn from(image: Image<U, Generic4>) -> Self {
         let shape = (image.rows(), image.cols(), Generic1::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, Generic2>
+impl<T, U> From<Image<U, Generic3>> for Image<OwnedRepr<T>, Generic2>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic3>) -> Self {
+    fn from(image: Image<U, Generic3>) -> Self {
         let shape = (image.rows(), image.cols(), Generic2::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, Generic1>
+impl<T, U> From<Image<U, Generic3>> for Image<OwnedRepr<T>, Generic1>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic3>) -> Self {
+    fn from(image: Image<U, Generic3>) -> Self {
         let shape = (image.rows(), image.cols(), Generic1::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic2>> for Image<T, Generic1>
+impl<T, U> From<Image<U, Generic2>> for Image<OwnedRepr<T>, Generic1>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    fn from(image: Image<T, Generic2>) -> Self {
+    fn from(image: Image<U, Generic2>) -> Self {
         let shape = (image.rows(), image.cols(), Generic1::channels());
         let data = Array3::from_shape_fn(shape, |(i, j, k)| image.data[[i, j, k]]);
         Self::from_data(data)
     }
 }
 
-impl<T> From<Image<T, Generic1>> for Image<T, Generic5>
+impl<T, U> From<Image<U, Generic1>> for Image<OwnedRepr<T>, Generic5>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic1>) -> Self {
+    fn from(image: Image<U, Generic1>) -> Self {
         let shape = (image.rows(), image.cols(), Generic5::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic1::channels()])
@@ -613,11 +690,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic2>> for Image<T, Generic5>
+impl<T, U> From<Image<U, Generic2>> for Image<OwnedRepr<T>, Generic5>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic2>) -> Self {
+    fn from(image: Image<U, Generic2>) -> Self {
         let shape = (image.rows(), image.cols(), Generic5::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic2::channels()])
@@ -626,11 +704,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, Generic5>
+impl<T, U> From<Image<U, Generic3>> for Image<U, Generic5>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic3>) -> Self {
+    fn from(image: Image<U, Generic3>) -> Self {
         let shape = (image.rows(), image.cols(), Generic5::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic3::channels()])
@@ -639,11 +718,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic4>> for Image<T, Generic5>
+impl<T, U> From<Image<U, Generic4>> for Image<U, Generic5>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic4>) -> Self {
+    fn from(image: Image<U, Generic4>) -> Self {
         let shape = (image.rows(), image.cols(), Generic5::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic4::channels()])
@@ -652,11 +732,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic1>> for Image<T, Generic4>
+impl<T, U> From<Image<U, Generic1>> for Image<U, Generic4>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic1>) -> Self {
+    fn from(image: Image<U, Generic1>) -> Self {
         let shape = (image.rows(), image.cols(), Generic4::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic1::channels()])
@@ -665,11 +746,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic2>> for Image<T, Generic4>
+impl<T, U> From<Image<U, Generic2>> for Image<U, Generic4>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic2>) -> Self {
+    fn from(image: Image<U, Generic2>) -> Self {
         let shape = (image.rows(), image.cols(), Generic4::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic2::channels()])
@@ -678,11 +760,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic3>> for Image<T, Generic4>
+impl<T, U> From<Image<U, Generic3>> for Image<U, Generic4>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic3>) -> Self {
+    fn from(image: Image<U, Generic3>) -> Self {
         let shape = (image.rows(), image.cols(), Generic4::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic3::channels()])
@@ -691,11 +774,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic1>> for Image<T, Generic3>
+impl<T, U> From<Image<U, Generic1>> for Image<U, Generic3>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic1>) -> Self {
+    fn from(image: Image<U, Generic1>) -> Self {
         let shape = (image.rows(), image.cols(), Generic3::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic1::channels()])
@@ -704,11 +788,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic2>> for Image<T, Generic3>
+impl<T, U> From<Image<U, Generic2>> for Image<U, Generic3>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic2>) -> Self {
+    fn from(image: Image<U, Generic2>) -> Self {
         let shape = (image.rows(), image.cols(), Generic3::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic2::channels()])
@@ -717,11 +802,12 @@ where
     }
 }
 
-impl<T> From<Image<T, Generic1>> for Image<T, Generic2>
+impl<T, U> From<Image<U, Generic1>> for Image<U, Generic2>
 where
+    U: Data<Elem = T>,
     T: Copy + Num,
 {
-    fn from(image: Image<T, Generic1>) -> Self {
+    fn from(image: Image<U, Generic1>) -> Self {
         let shape = (image.rows(), image.cols(), Generic2::channels());
         let mut data = Array3::zeros(shape);
         data.slice_mut(s![.., .., 0..Generic1::channels()])
