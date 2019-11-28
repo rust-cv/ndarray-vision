@@ -11,7 +11,7 @@ categories = ["Science", "Multimedia"]
 edition = "2018"
 
 [dependencies]
-ndarray = "0.12"
+ndarray = "0.13"
 ndarray-stats = "0.1"
 num-traits = "0.2"
 
