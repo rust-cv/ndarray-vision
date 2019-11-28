@@ -12,7 +12,7 @@ edition = "2018"
 
 [dependencies]
 ndarray = "0.12"
-ndarray-stats = "0.1"
+ndarray-stats = "0.3"
 num-traits = "0.2"
 
 [dev-dependencies]
