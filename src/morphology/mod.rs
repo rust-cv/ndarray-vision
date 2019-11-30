@@ -29,11 +29,12 @@ where
 
     fn erode(&self, kernel: ArrayView2<bool>) -> Self::Output {
         let sh = kernel.shape();
+        let (ro, co) = kernel_centre(sh[0], sh[1]);
         let mut result = Self::Output::from_elem(self.dim(), false);
         if self.shape()[0] >= sh[0] && self.shape()[1] >= sh[1] {
             Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).apply(
                 |(i, j), window| {
-                    result[[i, j, 0]] = (&kernel & &window) == kernel;
+                    result[[i + ro, j + co, 0]] = (&kernel & &window) == kernel;
                 },
             );
         }
@@ -46,11 +47,12 @@ where
 
     fn dilate(&self, kernel: ArrayView2<bool>) -> Self::Output {
         let sh = kernel.shape();
+        let (ro, co) = kernel_centre(sh[0], sh[1]);
         let mut result = Self::Output::from_elem(self.dim(), false);
         if self.shape()[0] >= sh[0] && self.shape()[1] >= sh[1] {
             Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).apply(
                 |(i, j), window| {
-                    result[[i, j, 0]] = (&kernel & &window).iter().any(|x| *x);
+                    result[[i + ro, j + co, 0]] = (&kernel & &window).iter().any(|x| *x);
                 },
             );
         }
@@ -115,5 +117,34 @@ where
 
     fn intersect_inplace(&mut self, other: &Self) {
         self.data.intersect_inplace(&other.data);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ndarray::arr2;
+
+    #[test]
+    fn simple_dilation() {
+        let pix_in = vec![
+            false, false, false, false, false, false, false, false, false, false, false, false,
+            true, false, false, false, false, false, false, false, false, false, false, false,
+            false,
+        ];
+        let pix_out = vec![
+            false, false, false, false, false, false, true, true, true, false, false, true, true,
+            true, false, false, true, true, true, false, false, false, false, false, false,
+        ];
+
+        let kern = arr2(&[[true, true, true], [true, true, true], [true, true, true]]);
+
+        let mut input = Image::<bool, Gray>::from_shape_data(5, 5, pix_in);
+        let expected = Image::<bool, Gray>::from_shape_data(5, 5, pix_out);
+        let actual = input.dilate(kern.view());
+        println!("{:#?}", actual);
+        assert_eq!(actual, expected);
+        input.dilate_inplace(kern.view());
+        assert_eq!(input, expected);
     }
 }
