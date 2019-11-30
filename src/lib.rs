@@ -29,8 +29,11 @@
 pub mod core;
 /// Image enhancement intrinsics and algorithms
 pub mod enhancement;
-/// Image formats - encoding and decoding images from bytes for saving and loading
+/// Image formats - encoding and decoding images from bytes for saving and
+/// loading
 pub mod format;
+/// Operations relating to morphological image processing
+pub mod morphology;
 /// Image processing intrinsics and common filters/algorithms.
 pub mod processing;
 /// Image transforms and warping

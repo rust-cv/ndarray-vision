@@ -1,5 +1,5 @@
 use crate::core::padding::*;
-use crate::core::{ColourModel, Image, ImageBase};
+use crate::core::{kernel_centre, ColourModel, Image, ImageBase};
 use crate::processing::Error;
 use ndarray::prelude::*;
 use ndarray::{s, Data, DataMut, Zip};
@@ -37,12 +37,6 @@ where
         kernel: ArrayView3<Self::Data>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<(), Error>;
-}
-
-fn kernel_centre(rows: usize, cols: usize) -> (usize, usize) {
-    let row_offset = rows / 2 - ((rows % 2 == 0) as usize);
-    let col_offset = cols / 2 - ((cols % 2 == 0) as usize);
-    (row_offset, col_offset)
 }
 
 impl<T, U> ConvolutionExt for ArrayBase<U, Ix3>
