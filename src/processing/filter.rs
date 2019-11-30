@@ -1,4 +1,4 @@
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use ndarray::prelude::*;
 use ndarray::{Data, IntoDimension, OwnedRepr, Zip};
 use ndarray_stats::interpolate::*;
@@ -47,13 +47,13 @@ where
     }
 }
 
-impl<T, U, C> MedianFilterExt for Image<U, C>
+impl<T, U, C> MedianFilterExt for ImageBase<U, C>
 where
     U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + ToPrimitive + Num + Ord,
     C: ColourModel,
 {
-    type Output = Image<OwnedRepr<T>, C>;
+    type Output = Image<T, C>;
 
     fn median_filter<E>(&self, region: E) -> Self::Output
     where

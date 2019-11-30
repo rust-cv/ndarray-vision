@@ -1,7 +1,7 @@
 use crate::core::PixelBound;
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use crate::processing::*;
-use ndarray::{prelude::*, Data, OwnedRepr};
+use ndarray::{prelude::*, Data};
 use ndarray_stats::histogram::{Bins, Edges, Grid};
 use ndarray_stats::HistogramExt;
 use ndarray_stats::QuantileExt;
@@ -41,14 +41,14 @@ pub trait ThresholdMeanExt<T> {
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
-impl<T, U, C> ThresholdOtsuExt<T> for Image<U, C>
+impl<T, U, C> ThresholdOtsuExt<T> for ImageBase<U, C>
 where
     U: Data<Elem = T>,
     Image<U, C>: Clone,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
-    type Output = Image<OwnedRepr<bool>, C>;
+    type Output = Image<bool, C>;
 
     fn threshold_otsu(&self) -> Result<Self::Output, Error> {
         let data = self.data.threshold_otsu()?;
@@ -135,14 +135,14 @@ where
     Ok(threshold)
 }
 
-impl<T, U, C> ThresholdMeanExt<T> for Image<U, C>
+impl<T, U, C> ThresholdMeanExt<T> for ImageBase<U, C>
 where
     U: Data<Elem = T>,
     Image<U, C>: Clone,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
-    type Output = Image<OwnedRepr<bool>, C>;
+    type Output = Image<bool, C>;
 
     fn threshold_mean(&self) -> Result<Self::Output, Error> {
         let data = self.data.threshold_mean()?;

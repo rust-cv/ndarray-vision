@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::processing::*;
 use core::ops::Neg;
-use ndarray::{prelude::*, Data, OwnedRepr};
+use ndarray::{prelude::*, Data, DataMut, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -14,14 +14,7 @@ where
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
     fn apply_sobel(&self) -> Result<Self::Output, Error>;
-}
 
-pub trait FullSobelExt
-where
-    Self: Sized,
-{
-    /// Type to output
-    type Output;
     /// Returns the magntitude and rotation outputs for use in other algorithms
     /// like the Canny edge detector. Rotation is in radians
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
@@ -31,7 +24,7 @@ fn get_edge_images<T, U>(
     mat: &ArrayBase<U, Ix3>,
 ) -> Result<(ArrayBase<OwnedRepr<T>, Ix3>, ArrayBase<OwnedRepr<T>, Ix3>), Error>
 where
-    U: Data<Elem = T>,
+    U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     let v_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
@@ -48,7 +41,7 @@ where
 
 impl<T, U> SobelExt for ArrayBase<U, Ix3>
 where
-    U: Data<Elem=T>,
+    U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     type Output = ArrayBase<OwnedRepr<T>, Ix3>;
@@ -67,14 +60,6 @@ where
 
         Ok(result)
     }
-}
-
-impl<T, U> FullSobelExt for ArrayBase<U, Ix3>
-where
-    U: Data<Elem=T>,
-    T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
-{
-    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
@@ -90,29 +75,22 @@ where
     }
 }
 
-impl<T, U, C> SobelExt for Image<U, C>
+impl<T, U, C> SobelExt for ImageBase<U, C>
 where
-    U: Data<Elem = T>,
+    U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
     C: ColourModel,
 {
-    type Output = Image<OwnedRepr<T>, C>;
+    type Output = Image<T, C>;
 
-    fn apply_sobel(&self) -> Result<Self, Error> {
+    fn apply_sobel(&self) -> Result<Self::Output, Error> {
         let data = self.data.apply_sobel()?;
         Ok(Image::from_data(data))
     }
-}
-
-impl<T, U, C> FullSobelExt for Image<U, C>
-where
-    U: Data<Elem = T>,
-    T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
-    C: ColourModel,
-{
-    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
-        self.data.full_sobel()
+        self.data
+            .full_sobel()
+            .map(|(m, r)| (Image::from_data(m), Image::from_data(r)))
     }
 }
