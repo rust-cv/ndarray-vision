@@ -10,9 +10,10 @@ pub trait HistogramEqExt<A>
 where
     A: Ord,
 {
+    type Output;
     /// Equalises an image histogram returning a new image.
     /// Grids should be for a 1xN image as the image is flattened during processing
-    fn equalise_hist(&self, grid: Grid<A>) -> Self;
+    fn equalise_hist(&self, grid: Grid<A>) -> Self::Output;
 
     /// Equalises an image histogram inplace
     /// Grids should be for a 1xN image as the image is flattened during processing
@@ -24,8 +25,10 @@ where
     U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
 {
-    fn equalise_hist(&self, grid: Grid<T>) -> Self {
-        let mut result = self.clone();
+    type Output = Array<T, Ix3>;
+
+    fn equalise_hist(&self, grid: Grid<T>) -> Self::Output {
+        let mut result = self.to_owned();
         result.equalise_hist_inplace(grid);
         result
     }
@@ -72,15 +75,16 @@ where
     }
 }
 
-impl<T, U, C> HistogramEqExt<T> for Image<U, C>
+impl<T, U, C> HistogramEqExt<T> for ImageBase<U, C>
 where
-    U: Data<Elem = T>,
-    Image<U, C>: Clone,
+    U: Data<Elem = T> + DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
-    fn equalise_hist(&self, grid: Grid<T>) -> Self {
-        let mut result = self.clone();
+    type Output = Image<T, C>;
+
+    fn equalise_hist(&self, grid: Grid<T>) -> Self::Output {
+        let mut result = self.to_owned();
         result.equalise_hist_inplace(grid);
         result
     }

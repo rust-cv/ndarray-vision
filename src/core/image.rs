@@ -51,6 +51,20 @@ where
     }
 }
 
+impl<S, T, C> ImageBase<S, C>
+where
+    S: Data<Elem = T>,
+    T: Clone,
+    C: ColourModel,
+{
+    pub fn to_owned(&self) -> Image<T, C> {
+        Image {
+            data: self.data.to_owned(),
+            model: PhantomData,
+        }
+    }
+}
+
 impl<T, C> Image<T, C>
 where
     T: Clone + Num,
