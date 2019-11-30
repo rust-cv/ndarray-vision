@@ -155,9 +155,8 @@ impl PpmEncoder {
 /// The ColourModel type argument is locked to RGB - this prevents calling
 /// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
 /// stabilised.
-impl<T, U> Decoder<T, U, RGB> for PpmDecoder
+impl<T> Decoder<T, RGB> for PpmDecoder
 where
-    U: Data<Elem = T>,
     T: Copy
         + Clone
         + Num

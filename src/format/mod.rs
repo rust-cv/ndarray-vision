@@ -32,7 +32,7 @@ where
 }
 
 /// Trait for an image decoder, use this to get an image from a byte stream
-pub trait Decoder<T, U, C>
+pub trait Decoder<T, C>
 where
     T: Copy
         + Clone

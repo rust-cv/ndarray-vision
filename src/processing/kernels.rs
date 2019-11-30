@@ -44,7 +44,7 @@ pub struct LaplaceFilter;
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LaplaceType {
     /// Standard filter and the default parameter choice, for a 3x3x1 matrix it is:
-    /// ```ignore
+    /// ```text
     /// [0, -1, 0]
     /// [-1, 4, -1]
     /// [0, -1, 0]
@@ -52,7 +52,7 @@ pub enum LaplaceType {
     Standard,
     /// The diagonal filter also contains derivatives for diagonal lines and
     /// for a 3x3x1 matrix is given by:
-    /// ```ignore
+    /// ```text
     /// [-1, -1, -1]
     /// [-1, 8, -1]
     /// [-1, -1, -1]
@@ -102,7 +102,7 @@ where
 {
     /// The parameter for the Gaussian filter is the horizontal and vertical
     /// covariances to form the covariance matrix.
-    /// ```ignore
+    /// ```text
     /// [ Params[0], 0]
     /// [ 0, Params[1]]
     /// ```

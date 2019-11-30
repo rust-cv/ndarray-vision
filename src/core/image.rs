@@ -1,10 +1,10 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
-use ndarray::{s, Data, DataMut, OwnedRepr, ViewRepr};
+use ndarray::{s, Data, DataMut, OwnedRepr, RawDataClone, ViewRepr};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::Num;
-use std::marker::PhantomData;
+use std::{fmt, hash, marker::PhantomData};
 
 pub type Image<T, C> = ImageBase<OwnedRepr<T>, C>;
 pub type ImageView<'a, T, C> = ImageBase<ViewRepr<&'a T>, C>;
@@ -155,6 +155,58 @@ where
     /// Get a mutable view of a pixels colour channels given a location
     pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<U, Ix1> {
         self.data.slice_mut(s![row, col, ..])
+    }
+}
+
+impl<T, U, C> fmt::Debug for ImageBase<U, C>
+where
+    U: Data<Elem = T>,
+    T: fmt::Debug,
+    C: ColourModel,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "ColourModel={:?} Data={:?}", self.model, self.data)?;
+        Ok(())
+    }
+}
+
+impl<T, U, C> PartialEq<ImageBase<U, C>> for ImageBase<U, C>
+where
+    U: Data<Elem = T>,
+    T: PartialEq,
+    C: ColourModel,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.model == other.model && self.data == other.data
+    }
+}
+
+impl<S, C> Clone for ImageBase<S, C>
+where
+    S: RawDataClone + Data,
+    C: ColourModel,
+{
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            model: PhantomData,
+        }
+    }
+
+    fn clone_from(&mut self, other: &Self) {
+        self.data.clone_from(&other.data)
+    }
+}
+
+impl<'a, S, C> hash::Hash for ImageBase<S, C>
+where
+    S: Data,
+    S::Elem: hash::Hash,
+    C: ColourModel,
+{
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.model.hash(state);
+        self.data.hash(state);
     }
 }
 
