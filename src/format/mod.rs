@@ -16,11 +16,15 @@ where
     C: ColourModel,
 {
     /// Encode an image into a sequence of bytes for the given format
-    fn encode(&self, image: &Image<U, C>) -> Vec<u8>;
+    fn encode(&self, image: &ImageBase<U, C>) -> Vec<u8>;
 
     /// Encode an image saving it to the file at filename. This function shouldn't
     /// add an extension preferring the user to do that instead.
-    fn encode_file<P: AsRef<Path>>(&self, image: &Image<U, C>, filename: P) -> std::io::Result<()> {
+    fn encode_file<P: AsRef<Path>>(
+        &self,
+        image: &ImageBase<U, C>,
+        filename: P,
+    ) -> std::io::Result<()> {
         let mut file = File::create(filename)?;
         file.write_all(&self.encode(image))?;
         Ok(())
@@ -30,7 +34,6 @@ where
 /// Trait for an image decoder, use this to get an image from a byte stream
 pub trait Decoder<T, U, C>
 where
-    U: Data<Elem = T>,
     T: Copy
         + Clone
         + FromPrimitive
@@ -44,9 +47,9 @@ where
 {
     /// From the bytes decode an image, will perform any scaling or conversions
     /// required to represent elements with type T.
-    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<U, C>>;
+    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T, C>>;
     /// Given a filename decode an image performing any necessary conversions.
-    fn decode_file<P: AsRef<Path>>(&self, filename: P) -> std::io::Result<Image<U, C>> {
+    fn decode_file<P: AsRef<Path>>(&self, filename: P) -> std::io::Result<Image<T, C>> {
         let bytes = read(filename)?;
         self.decode(&bytes)
     }

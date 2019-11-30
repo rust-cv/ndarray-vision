@@ -1,4 +1,4 @@
-use crate::core::{normalise_pixel_value, Image, PixelBound, RGB};
+use crate::core::{normalise_pixel_value, Image, ImageBase, PixelBound, RGB};
 use crate::format::{Decoder, Encoder};
 use ndarray::Data;
 use num_traits::cast::{FromPrimitive, NumCast};
@@ -46,7 +46,7 @@ where
         + PixelBound
         + FromPrimitive,
 {
-    fn encode(&self, image: &Image<U, RGB>) -> Vec<u8> {
+    fn encode(&self, image: &ImageBase<U, RGB>) -> Vec<u8> {
         use EncodingType::*;
         match self.encoding {
             Plaintext => self.encode_plaintext(image),
@@ -73,7 +73,7 @@ impl PpmEncoder {
 
     /// Gets the maximum pixel value in the image across all channels. This is
     /// used in the PPM header
-    fn get_max_value<T, U>(image: &Image<U, RGB>) -> Option<u8>
+    fn get_max_value<T, U>(image: &ImageBase<U, RGB>) -> Option<u8>
     where
         U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
@@ -95,7 +95,7 @@ impl PpmEncoder {
     }
 
     /// Encode the image into the binary PPM format (P6) returning the bytes
-    fn encode_binary<T, U>(self, image: &Image<U, RGB>) -> Vec<u8>
+    fn encode_binary<T, U>(self, image: &ImageBase<U, RGB>) -> Vec<u8>
     where
         U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
@@ -117,7 +117,7 @@ impl PpmEncoder {
 
     /// Encode the image into the plaintext PPM format (P3) returning the text as
     /// an array of bytes
-    fn encode_plaintext<T, U>(self, image: &Image<U, RGB>) -> Vec<u8>
+    fn encode_plaintext<T, U>(self, image: &ImageBase<U, RGB>) -> Vec<u8>
     where
         U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
@@ -168,7 +168,7 @@ where
         + PixelBound
         + FromPrimitive,
 {
-    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<U, RGB>> {
+    fn decode(&self, bytes: &[u8]) -> std::io::Result<Image<T, RGB>> {
         if bytes.len() < 9 {
             Err(Error::new(
                 ErrorKind::InvalidData,
@@ -226,9 +226,8 @@ impl PpmDecoder {
         }
     }
 
-    fn decode_binary<T, U>(bytes: &[u8]) -> std::io::Result<Image<U, RGB>>
+    fn decode_binary<T>(bytes: &[u8]) -> std::io::Result<Image<T, RGB>>
     where
-        U: Data<Elem = T>,
         T: Copy
             + Clone
             + Num
@@ -280,9 +279,8 @@ impl PpmDecoder {
         }
     }
 
-    fn decode_plaintext<T, U>(bytes: &[u8]) -> std::io::Result<Image<U, RGB>>
+    fn decode_plaintext<T>(bytes: &[u8]) -> std::io::Result<Image<T, RGB>>
     where
-        U: Data<Elem = T>,
         T: Copy
             + Clone
             + Num
