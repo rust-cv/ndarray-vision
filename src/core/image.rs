@@ -1,14 +1,16 @@
 use crate::core::colour_models::*;
 use crate::core::traits::PixelBound;
 use ndarray::prelude::*;
-use ndarray::{s, Data};
+use ndarray::{s, Data, DataMut, OwnedRepr, ViewRepr};
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::Num;
 use std::marker::PhantomData;
 
+pub type Image<T, C> = ImageBase<OwnedRepr<T>, C>;
+pub type ImageView<'a, T, C> = ImageBase<ViewRepr<&'a T>, C>;
+
 /// Basic structure containing an image.
-#[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct Image<T, C>
+pub struct ImageBase<T, C>
 where
     C: ColourModel,
     T: Data,
@@ -26,16 +28,15 @@ where
     pub(crate) model: PhantomData<C>,
 }
 
-impl<T, U, C> Image<U, C>
+impl<T, U, C> ImageBase<U, C>
 where
     U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     C: ColourModel,
 {
     /// Converts image into a different type - doesn't scale to new pixel bounds
-    pub fn into_type<T2, U2>(self) -> Image<U2, C>
+    pub fn into_type<T2>(self) -> Image<T2, C>
     where
-        U2: Data<Elem = T2>,
         T2: Copy + Clone + FromPrimitive + Num + NumCast + PixelBound,
     {
         let rescale = |x: &T| {
@@ -46,13 +47,12 @@ where
             T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
         };
         let data = self.data.map(rescale);
-        Image::<U2, C>::from_data(data)
+        Image::<_, C>::from_data(data)
     }
 }
 
-impl<T, C, U> Image<U, C>
+impl<T, C> Image<T, C>
 where
-    U: Data<Elem = T>,
     T: Clone + Num,
     C: ColourModel,
 {
@@ -60,7 +60,7 @@ where
     /// a colour model
     pub fn new(rows: usize, columns: usize) -> Self {
         Image {
-            data: Array3::<T>::zeros((rows, columns, C::channels())),
+            data: Array3::zeros((rows, columns, C::channels())),
             model: PhantomData,
         }
     }
@@ -69,7 +69,7 @@ where
     /// the data sizes don't match a zero filled image will be returned instead
     /// of panicking
     pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Self {
-        let data = Array3::<T>::from_shape_vec((rows, cols, C::channels()), data)
+        let data = Array3::from_shape_vec((rows, cols, C::channels()), data)
             .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));
 
         Image {
@@ -77,27 +77,30 @@ where
             model: PhantomData,
         }
     }
+}
 
+impl<T, C> ImageBase<T, C>
+where
+    T: Data,
+    C: ColourModel,
+{
     /// Create an image given an existing ndarray
-    pub fn from_array<V>(data: ArrayBase<V, Ix3>) -> Self
-    where
-        V: Data<Elem = T>,
-    {
-        Image {
+    pub fn from_array(data: ArrayBase<T, Ix3>) -> Self {
+        Self {
             data,
             model: PhantomData,
         }
     }
 }
 
-impl<T, U, C> Image<T, C>
+impl<T, U, C> ImageBase<T, C>
 where
     T: Data<Elem = U>,
     C: ColourModel,
 {
     /// Construct the image from a given Array3
     pub fn from_data(data: ArrayBase<T, Ix3>) -> Self {
-        Image {
+        Self {
             data,
             model: PhantomData,
         }
@@ -117,22 +120,27 @@ where
     }
 
     /// Get a view of all colour channels at a pixels location
-    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<T, Ix1> {
+    pub fn pixel(&self, row: usize, col: usize) -> ArrayView<U, Ix1> {
         self.data.slice(s![row, col, ..])
     }
 
-    /// Get a mutable view of a pixels colour channels given a location
-    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<T, Ix1> {
-        self.data.slice_mut(s![row, col, ..])
-    }
-
-    pub fn into_type_raw<U2, C2>(self) -> Image<U2, C>
+    pub fn into_type_raw<C2>(self) -> ImageBase<T, C2>
     where
-        U2: Data<Elem = U>,
         C2: ColourModel,
     {
         assert_eq!(C2::channels(), C::channels());
-        Image::<U2, C2>::from_data(self.data)
+        ImageBase::<T, C2>::from_data(self.data)
+    }
+}
+
+impl<T, U, C> ImageBase<T, C>
+where
+    T: DataMut<Elem = U>,
+    C: ColourModel,
+{
+    /// Get a mutable view of a pixels colour channels given a location
+    pub fn pixel_mut(&mut self, row: usize, col: usize) -> ArrayViewMut<U, Ix1> {
+        self.data.slice_mut(s![row, col, ..])
     }
 }
 
