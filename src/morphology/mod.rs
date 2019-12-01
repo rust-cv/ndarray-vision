@@ -16,9 +16,9 @@ pub trait MorphologyExt {
 
     fn union_inplace(&mut self, other: &Self);
 
-    fn intersect(&self, other: &Self) -> Self::Output;
+    fn intersection(&self, other: &Self) -> Self::Output;
 
-    fn intersect_inplace(&mut self, other: &Self);
+    fn intersection_inplace(&mut self, other: &Self);
 }
 
 impl<U> MorphologyExt for ArrayBase<U, Ix3>
@@ -71,11 +71,11 @@ where
         *self |= other;
     }
 
-    fn intersect(&self, other: &Self) -> Self::Output {
+    fn intersection(&self, other: &Self) -> Self::Output {
         self & other
     }
 
-    fn intersect_inplace(&mut self, other: &Self) {
+    fn intersection_inplace(&mut self, other: &Self) {
         *self &= other;
     }
 }
@@ -88,7 +88,7 @@ where
     type Output = Image<bool, C>;
 
     fn erode(&self, kernel: ArrayView2<bool>) -> Self::Output {
-        Self::Output::from_array(self.data.erode(kernel))
+        Self::Output::from_data(self.data.erode(kernel))
     }
 
     fn erode_inplace(&mut self, kernel: ArrayView2<bool>) {
@@ -96,7 +96,7 @@ where
     }
 
     fn dilate(&self, kernel: ArrayView2<bool>) -> Self::Output {
-        Self::Output::from_array(self.data.dilate(kernel))
+        Self::Output::from_data(self.data.dilate(kernel))
     }
 
     fn dilate_inplace(&mut self, kernel: ArrayView2<bool>) {
@@ -104,19 +104,19 @@ where
     }
 
     fn union(&self, other: &Self) -> Self::Output {
-        Self::Output::from_array(self.data.union(&other.data))
+        Self::Output::from_data(self.data.union(&other.data))
     }
 
     fn union_inplace(&mut self, other: &Self) {
         self.data.union_inplace(&other.data);
     }
 
-    fn intersect(&self, other: &Self) -> Self::Output {
-        Self::Output::from_array(self.data.intersect(&other.data))
+    fn intersection(&self, other: &Self) -> Self::Output {
+        Self::Output::from_data(self.data.intersection(&other.data))
     }
 
-    fn intersect_inplace(&mut self, other: &Self) {
-        self.data.intersect_inplace(&other.data);
+    fn intersection_inplace(&mut self, other: &Self) {
+        self.data.intersection_inplace(&other.data);
     }
 }
 
@@ -142,9 +142,58 @@ mod tests {
         let mut input = Image::<bool, Gray>::from_shape_data(5, 5, pix_in);
         let expected = Image::<bool, Gray>::from_shape_data(5, 5, pix_out);
         let actual = input.dilate(kern.view());
-        println!("{:#?}", actual);
         assert_eq!(actual, expected);
         input.dilate_inplace(kern.view());
         assert_eq!(input, expected);
+    }
+
+    #[test]
+    fn simple_erosion() {
+        let pix_out = vec![
+            false, false, false, false, false, false, false, false, false, false, false, false,
+            true, false, false, false, false, false, false, false, false, false, false, false,
+            false,
+        ];
+        let pix_in = vec![
+            false, false, false, false, false, false, true, true, true, false, false, true, true,
+            true, false, false, true, true, true, false, false, false, false, false, false,
+        ];
+
+        let kern = arr2(&[[true, true, true], [true, true, true], [true, true, true]]);
+
+        let mut input = Image::<bool, Gray>::from_shape_data(5, 5, pix_in);
+        let expected = Image::<bool, Gray>::from_shape_data(5, 5, pix_out);
+        let actual = input.erode(kern.view());
+        assert_eq!(actual, expected);
+        input.erode_inplace(kern.view());
+        assert_eq!(input, expected);
+    }
+
+    #[test]
+    fn simple_intersect() {
+        let a = vec![false, false, false, true, true, true, false, false, false];
+        let b = vec![false, true, false, false, true, false, false, true, false];
+        let a = Image::<bool, Gray>::from_shape_data(3, 3, a);
+        let b = Image::<bool, Gray>::from_shape_data(3, 3, b);
+
+        let exp = vec![false, false, false, false, true, false, false, false, false];
+        let expected = Image::<bool, Gray>::from_shape_data(3, 3, exp);
+        let c = a.intersection(&b);
+
+        assert_eq!(c, expected);
+    }
+
+    #[test]
+    fn simple_union() {
+        let a = vec![false, false, false, true, true, true, false, false, false];
+        let b = vec![false, true, false, false, true, false, false, true, false];
+        let a = Image::<bool, Gray>::from_shape_data(3, 3, a);
+        let b = Image::<bool, Gray>::from_shape_data(3, 3, b);
+
+        let exp = vec![false, true, false, true, true, true, false, true, false];
+        let expected = Image::<bool, Gray>::from_shape_data(3, 3, exp);
+        let c = a.union(&b);
+
+        assert_eq!(c, expected);
     }
 }

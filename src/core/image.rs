@@ -92,20 +92,6 @@ where
     }
 }
 
-impl<T, C> ImageBase<T, C>
-where
-    T: Data,
-    C: ColourModel,
-{
-    /// Create an image given an existing ndarray
-    pub fn from_array(data: ArrayBase<T, Ix3>) -> Self {
-        Self {
-            data,
-            model: PhantomData,
-        }
-    }
-}
-
 impl<T, U, C> ImageBase<T, C>
 where
     T: Data<Elem = U>,

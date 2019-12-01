@@ -152,7 +152,7 @@ where
         output_size: Option<(usize, usize)>,
     ) -> Result<Self::Output, Error> {
         let data = self.data.transform(transform, output_size)?;
-        let result = Self::Output::from_array(data).to_owned();
+        let result = Self::Output::from_data(data).to_owned();
         Ok(result)
     }
 }
