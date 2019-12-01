@@ -173,7 +173,7 @@ mod tests {
     fn simple_intersect() {
         let a = vec![false, false, false, true, true, true, false, false, false];
         let b = vec![false, true, false, false, true, false, false, true, false];
-        let a = Image::<bool, Gray>::from_shape_data(3, 3, a);
+        let mut a = Image::<bool, Gray>::from_shape_data(3, 3, a);
         let b = Image::<bool, Gray>::from_shape_data(3, 3, b);
 
         let exp = vec![false, false, false, false, true, false, false, false, false];
@@ -181,13 +181,17 @@ mod tests {
         let c = a.intersection(&b);
 
         assert_eq!(c, expected);
+        assert_eq!(a.intersection(&b), b.intersection(&a));
+
+        a.intersection_inplace(&b);
+        assert_eq!(a, c);
     }
 
     #[test]
     fn simple_union() {
         let a = vec![false, false, false, true, true, true, false, false, false];
         let b = vec![false, true, false, false, true, false, false, true, false];
-        let a = Image::<bool, Gray>::from_shape_data(3, 3, a);
+        let mut a = Image::<bool, Gray>::from_shape_data(3, 3, a);
         let b = Image::<bool, Gray>::from_shape_data(3, 3, b);
 
         let exp = vec![false, true, false, true, true, true, false, true, false];
@@ -195,5 +199,9 @@ mod tests {
         let c = a.union(&b);
 
         assert_eq!(c, expected);
+        assert_eq!(a.union(&b), b.union(&a));
+
+        a.union_inplace(&b);
+        assert_eq!(a, c);
     }
 }
