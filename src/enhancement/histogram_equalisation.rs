@@ -1,5 +1,5 @@
 use crate::core::*;
-use ndarray::prelude::*;
+use ndarray::{prelude::*, DataMut};
 use ndarray_stats::{histogram::Grid, HistogramExt};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::{Num, NumAssignOps};
@@ -10,21 +10,25 @@ pub trait HistogramEqExt<A>
 where
     A: Ord,
 {
+    type Output;
     /// Equalises an image histogram returning a new image.
     /// Grids should be for a 1xN image as the image is flattened during processing
-    fn equalise_hist(&self, grid: Grid<A>) -> Self;
+    fn equalise_hist(&self, grid: Grid<A>) -> Self::Output;
 
     /// Equalises an image histogram inplace
     /// Grids should be for a 1xN image as the image is flattened during processing
     fn equalise_hist_inplace(&mut self, grid: Grid<A>);
 }
 
-impl<T> HistogramEqExt<T> for Array3<T>
+impl<T, U> HistogramEqExt<T> for ArrayBase<U, Ix3>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
 {
-    fn equalise_hist(&self, grid: Grid<T>) -> Self {
-        let mut result = self.clone();
+    type Output = Array<T, Ix3>;
+
+    fn equalise_hist(&self, grid: Grid<T>) -> Self::Output {
+        let mut result = self.to_owned();
         result.equalise_hist_inplace(grid);
         result
     }
@@ -71,14 +75,16 @@ where
     }
 }
 
-impl<T, C> HistogramEqExt<T> for Image<T, C>
+impl<T, U, C> HistogramEqExt<T> for ImageBase<U, C>
 where
-    Image<T, C>: Clone,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
-    fn equalise_hist(&self, grid: Grid<T>) -> Self {
-        let mut result = self.clone();
+    type Output = Image<T, C>;
+
+    fn equalise_hist(&self, grid: Grid<T>) -> Self::Output {
+        let mut result = self.to_owned();
         result.equalise_hist_inplace(grid);
         result
     }

@@ -1,7 +1,7 @@
 use crate::core::PixelBound;
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use crate::processing::*;
-use ndarray::prelude::*;
+use ndarray::{prelude::*, Data};
 use ndarray_stats::histogram::{Bins, Edges, Grid};
 use ndarray_stats::HistogramExt;
 use ndarray_stats::QuantileExt;
@@ -41,9 +41,10 @@ pub trait ThresholdMeanExt<T> {
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
-impl<T, C> ThresholdOtsuExt<T> for Image<T, C>
+impl<T, U, C> ThresholdOtsuExt<T> for ImageBase<U, C>
 where
-    Image<T, C>: Clone,
+    U: Data<Elem = T>,
+    Image<U, C>: Clone,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
@@ -58,8 +59,9 @@ where
     }
 }
 
-impl<T> ThresholdOtsuExt<T> for Array3<T>
+impl<T, U> ThresholdOtsuExt<T> for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     type Output = Array3<bool>;
@@ -68,7 +70,7 @@ where
         if self.shape()[2] > 1 {
             Err(Error::ChannelDimensionMismatch)
         } else {
-            let value = calculate_threshold_otsu(&self)?;
+            let value = calculate_threshold_otsu(self)?;
             let mask = apply_threshold(self, value);
             Ok(mask)
         }
@@ -82,8 +84,9 @@ where
 /// i.e. single channel; otherwise we need to output all 3 threshold values).
 /// Todo: Add optional nbins
 ///
-fn calculate_threshold_otsu<T>(mat: &Array3<T>) -> Result<f64, Error>
+fn calculate_threshold_otsu<T, U>(mat: &ArrayBase<U, Ix3>) -> Result<f64, Error>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     let mut threshold = 0.0;
@@ -132,9 +135,10 @@ where
     Ok(threshold)
 }
 
-impl<T, C> ThresholdMeanExt<T> for Image<T, C>
+impl<T, U, C> ThresholdMeanExt<T> for ImageBase<U, C>
 where
-    Image<T, C>: Clone,
+    U: Data<Elem = T>,
+    Image<U, C>: Clone,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {
@@ -149,8 +153,9 @@ where
     }
 }
 
-impl<T> ThresholdMeanExt<T> for Array3<T>
+impl<T, U> ThresholdMeanExt<T> for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     type Output = Array3<bool>;
@@ -159,22 +164,24 @@ where
         if self.shape()[2] > 1 {
             Err(Error::ChannelDimensionMismatch)
         } else {
-            let value = calculate_threshold_mean(&self)?;
+            let value = calculate_threshold_mean(self)?;
             let mask = apply_threshold(self, value);
             Ok(mask)
         }
     }
 }
 
-fn calculate_threshold_mean<T>(array: &Array3<T>) -> Result<f64, Error>
+fn calculate_threshold_mean<T, U>(array: &ArrayBase<U, Ix3>) -> Result<f64, Error>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     Ok(array.sum().to_f64().unwrap() / array.len() as f64)
 }
 
-fn apply_threshold<T>(data: &Array3<T>, threshold: f64) -> Array3<bool>
+fn apply_threshold<T, U>(data: &ArrayBase<U, Ix3>, threshold: f64) -> Array3<bool>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     let result = data.mapv(|x| x.to_f64().unwrap() >= threshold);

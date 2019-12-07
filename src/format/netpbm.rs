@@ -1,5 +1,6 @@
-use crate::core::{normalise_pixel_value, Image, PixelBound, RGB};
+use crate::core::{normalise_pixel_value, Image, ImageBase, PixelBound, RGB};
 use crate::format::{Decoder, Encoder};
+use ndarray::Data;
 use num_traits::cast::{FromPrimitive, NumCast};
 use num_traits::{Num, NumAssignOps};
 use std::fmt::Display;
@@ -32,8 +33,9 @@ impl Default for PpmEncoder {
 /// The ColourModel type argument is locked to RGB - this prevents calling
 /// RGB::into::<RGB>() unnecessarily which is unavoidable until trait specialisation is
 /// stabilised.
-impl<T> Encoder<T, RGB> for PpmEncoder
+impl<T, U> Encoder<T, U, RGB> for PpmEncoder
 where
+    U: Data<Elem = T>,
     T: Copy
         + Clone
         + Num
@@ -44,7 +46,7 @@ where
         + PixelBound
         + FromPrimitive,
 {
-    fn encode(&self, image: &Image<T, RGB>) -> Vec<u8> {
+    fn encode(&self, image: &ImageBase<U, RGB>) -> Vec<u8> {
         use EncodingType::*;
         match self.encoding {
             Plaintext => self.encode_plaintext(image),
@@ -71,8 +73,9 @@ impl PpmEncoder {
 
     /// Gets the maximum pixel value in the image across all channels. This is
     /// used in the PPM header
-    fn get_max_value<T>(image: &Image<T, RGB>) -> Option<u8>
+    fn get_max_value<T, U>(image: &ImageBase<U, RGB>) -> Option<u8>
     where
+        U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
         image
@@ -92,8 +95,9 @@ impl PpmEncoder {
     }
 
     /// Encode the image into the binary PPM format (P6) returning the bytes
-    fn encode_binary<T>(self, image: &Image<T, RGB>) -> Vec<u8>
+    fn encode_binary<T, U>(self, image: &ImageBase<U, RGB>) -> Vec<u8>
     where
+        U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
         let max_val = Self::get_max_value(image).unwrap_or_else(|| 255);
@@ -113,8 +117,9 @@ impl PpmEncoder {
 
     /// Encode the image into the plaintext PPM format (P3) returning the text as
     /// an array of bytes
-    fn encode_plaintext<T>(self, image: &Image<T, RGB>) -> Vec<u8>
+    fn encode_plaintext<T, U>(self, image: &ImageBase<U, RGB>) -> Vec<u8>
     where
+        U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
         let max_val = 255;

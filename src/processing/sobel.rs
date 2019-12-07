@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::processing::*;
 use core::ops::Neg;
-use ndarray::prelude::*;
+use ndarray::{prelude::*, DataMut, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -13,15 +13,16 @@ where
     /// Type to output
     type Output;
     /// Returns the magnitude output of the sobel - an image of only lines
-    fn apply_sobel(&self) -> Result<Self, Error>;
+    fn apply_sobel(&self) -> Result<Self::Output, Error>;
 
     /// Returns the magntitude and rotation outputs for use in other algorithms
     /// like the Canny edge detector. Rotation is in radians
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
 }
 
-fn get_edge_images<T>(mat: &Array3<T>) -> Result<(Array3<T>, Array3<T>), Error>
+fn get_edge_images<T, U>(mat: &ArrayBase<U, Ix3>) -> Result<(Array3<T>, Array3<T>), Error>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     let v_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
@@ -36,13 +37,14 @@ where
     Ok((h_deriv, v_deriv))
 }
 
-impl<T> SobelExt for Array3<T>
+impl<T, U> SobelExt for ArrayBase<U, Ix3>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
-    type Output = Self;
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
-    fn apply_sobel(&self) -> Result<Self, Error> {
+    fn apply_sobel(&self) -> Result<Self::Output, Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
 
         let h_deriv = h_deriv.mapv(|x| x.powi(2));
@@ -71,19 +73,22 @@ where
     }
 }
 
-impl<T, C> SobelExt for Image<T, C>
+impl<T, U, C> SobelExt for ImageBase<U, C>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
     C: ColourModel,
 {
-    type Output = Array3<T>;
+    type Output = Image<T, C>;
 
-    fn apply_sobel(&self) -> Result<Self, Error> {
+    fn apply_sobel(&self) -> Result<Self::Output, Error> {
         let data = self.data.apply_sobel()?;
         Ok(Image::from_data(data))
     }
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
-        self.data.full_sobel()
+        self.data
+            .full_sobel()
+            .map(|(m, r)| (Image::from_data(m), Image::from_data(r)))
     }
 }

@@ -1,5 +1,5 @@
-use crate::core::{ColourModel, Image};
-use ndarray::{prelude::*, s};
+use crate::core::{ColourModel, Image, ImageBase};
+use ndarray::{prelude::*, s, Data, OwnedRepr};
 use num_traits::identities::Zero;
 use std::marker::PhantomData;
 
@@ -11,7 +11,11 @@ where
 {
     /// Taking in the image data and the margin to apply to rows and columns
     /// returns a padded image
-    fn pad(&self, image: ArrayView3<T>, padding: (usize, usize)) -> Array3<T>;
+    fn pad(
+        &self,
+        image: ArrayView<T, Ix3>,
+        padding: (usize, usize),
+    ) -> ArrayBase<OwnedRepr<T>, Ix3>;
 }
 
 /// Doesn't apply any padding to the image returning it unaltered regardless
@@ -33,7 +37,11 @@ impl<T> PaddingStrategy<T> for NoPadding
 where
     T: Copy,
 {
-    fn pad(&self, image: ArrayView3<T>, _padding: (usize, usize)) -> Array3<T> {
+    fn pad(
+        &self,
+        image: ArrayView<T, Ix3>,
+        _padding: (usize, usize),
+    ) -> ArrayBase<OwnedRepr<T>, Ix3> {
         image.to_owned()
     }
 }
@@ -42,7 +50,11 @@ impl<T> PaddingStrategy<T> for ConstantPadding<T>
 where
     T: Copy,
 {
-    fn pad(&self, image: ArrayView3<T>, padding: (usize, usize)) -> Array3<T> {
+    fn pad(
+        &self,
+        image: ArrayView<T, Ix3>,
+        padding: (usize, usize),
+    ) -> ArrayBase<OwnedRepr<T>, Ix3> {
         let shape = (
             image.shape()[0] + padding.0 * 2,
             image.shape()[1] + padding.1 * 2,
@@ -66,40 +78,46 @@ impl<T> PaddingStrategy<T> for ZeroPadding
 where
     T: Copy + Zero,
 {
-    fn pad(&self, image: ArrayView3<T>, padding: (usize, usize)) -> Array3<T> {
+    fn pad(
+        &self,
+        image: ArrayView<T, Ix3>,
+        padding: (usize, usize),
+    ) -> ArrayBase<OwnedRepr<T>, Ix3> {
         let padder = ConstantPadding(T::zero());
         padder.pad(image, padding)
     }
 }
 
 /// Padding extension for images
-pub trait PaddingExt {
-    /// Data type for container
-    type Data;
+pub trait PaddingExt<T> {
+    /// Type of the output image
+    type Output;
     /// Pad the object with the given padding and strategy
-    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<Self::Data>) -> Self;
+    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<T>) -> Self::Output;
 }
 
-impl<T> PaddingExt for Array3<T>
+impl<T, U> PaddingExt<T> for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy,
 {
-    type Data = T;
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
 
-    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<Self::Data>) -> Self {
+    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<T>) -> Self::Output {
         strategy.pad(self.view(), padding)
     }
 }
 
-impl<T, C> PaddingExt for Image<T, C>
+impl<T, U, C> PaddingExt<T> for ImageBase<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy,
     C: ColourModel,
 {
-    type Data = T;
+    type Output = Image<T, C>;
 
-    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<Self::Data>) -> Self {
-        Self {
+    fn pad(&self, padding: (usize, usize), strategy: &dyn PaddingStrategy<T>) -> Self::Output {
+        Self::Output {
             data: strategy.pad(self.data.view(), padding),
             model: PhantomData,
         }

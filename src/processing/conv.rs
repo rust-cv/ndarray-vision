@@ -1,8 +1,8 @@
 use crate::core::padding::*;
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use crate::processing::Error;
 use ndarray::prelude::*;
-use ndarray::{s, Zip};
+use ndarray::{s, DataMut, Zip};
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
@@ -14,10 +14,12 @@ where
 {
     /// Underlying data type to perform the convolution on
     type Data;
+    /// Type for the output as data will have to be allocated
+    type Output;
 
     /// Perform a convolution returning the resultant data
     /// applies the default padding of zero padding
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error>;
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error>;
     /// Performs the convolution inplace mutating the containers data
     /// applies the default padding of zero padding
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
@@ -27,7 +29,7 @@ where
         &self,
         kernel: ArrayView3<Self::Data>,
         strategy: &dyn PaddingStrategy<Self::Data>,
-    ) -> Result<Self, Error>;
+    ) -> Result<Self::Output, Error>;
     /// Performs the convolution inplace mutating the containers data
     /// applies the default padding of zero padding
     fn conv2d_inplace_with_padding(
@@ -43,18 +45,20 @@ fn kernel_centre(rows: usize, cols: usize) -> (usize, usize) {
     (row_offset, col_offset)
 }
 
-impl<T> ConvolutionExt for Array3<T>
+impl<T, U> ConvolutionExt for ArrayBase<U, Ix3>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
 {
     type Data = T;
+    type Output = Array<T, Ix3>;
 
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error> {
         self.conv2d_with_padding(kernel, &ZeroPadding {})
     }
 
     fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
-        *self = self.conv2d_with_padding(kernel, &ZeroPadding {})?;
+        self.assign(&self.conv2d_with_padding(kernel, &ZeroPadding {})?);
         Ok(())
     }
 
@@ -62,7 +66,7 @@ where
         &self,
         kernel: ArrayView3<Self::Data>,
         strategy: &dyn PaddingStrategy<Self::Data>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self::Output, Error> {
         if self.shape()[2] != kernel.shape()[2] {
             Err(Error::ChannelDimensionMismatch)
         } else {
@@ -73,7 +77,7 @@ where
             let shape = (self.shape()[0], self.shape()[1], self.shape()[2]);
 
             if shape.0 > 0 && shape.1 > 0 {
-                let mut result = Self::zeros(shape);
+                let mut result = Self::Output::zeros(shape);
                 let tmp = self.pad((row_offset, col_offset), strategy);
 
                 Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
@@ -93,20 +97,23 @@ where
         kernel: ArrayView3<Self::Data>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<(), Error> {
-        *self = self.conv2d_with_padding(kernel, strategy)?;
+        self.assign(&self.conv2d_with_padding(kernel, strategy)?);
         Ok(())
     }
 }
 
-impl<T, C> ConvolutionExt for Image<T, C>
+impl<T, U, C> ConvolutionExt for ImageBase<U, C>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
     C: ColourModel,
 {
     type Data = T;
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self, Error> {
+    type Output = Image<T, C>;
+
+    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error> {
         let data = self.data.conv2d(kernel)?;
-        Ok(Self {
+        Ok(Self::Output {
             data,
             model: PhantomData,
         })
@@ -120,9 +127,9 @@ where
         &self,
         kernel: ArrayView3<Self::Data>,
         strategy: &dyn PaddingStrategy<Self::Data>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self::Output, Error> {
         let data = self.data.conv2d_with_padding(kernel, strategy)?;
-        Ok(Self {
+        Ok(Self::Output {
             data,
             model: PhantomData,
         })

@@ -6,11 +6,14 @@
 * Padding strategies (`NoPadding`, `ConstantPadding`, `ZeroPadding`)
 * Threshold module with Otsu and Mean threshold algorithms
 * Image transformations and functions to create affine transform matrices
+* Type alias `Image` for `ImageBase<OwnedRepr<T>, _>` replicated old `Image` type
+* Type alias `ImageView` for `ImageBase<ViewRepr<&'a T>, _>`
 
 ### Changed
 * Integrated Padding strategies into convolutions
 * Updated `ndarray-stats` to 0.2.0 adding `noisy_float` for median change
 * [INTERNAL] Disabled code coverage due to issues with tarpaulin and native libraries
+* Renamed `Image` to `ImageBase` which can take any implementor of the ndaray `Data` trait
 
 ### Removed 
 
