@@ -1,7 +1,7 @@
 use crate::core::*;
 use crate::processing::*;
 use core::ops::Neg;
-use ndarray::{prelude::*, Data, DataMut, OwnedRepr};
+use ndarray::{prelude::*, DataMut, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -20,11 +20,9 @@ where
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error>;
 }
 
-fn get_edge_images<T, U>(
-    mat: &ArrayBase<U, Ix3>,
-) -> Result<(ArrayBase<OwnedRepr<T>, Ix3>, ArrayBase<OwnedRepr<T>, Ix3>), Error>
+fn get_edge_images<T, U>(mat: &ArrayBase<U, Ix3>) -> Result<(Array3<T>, Array3<T>), Error>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     let v_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
@@ -41,7 +39,7 @@ where
 
 impl<T, U> SobelExt for ArrayBase<U, Ix3>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
 {
     type Output = ArrayBase<OwnedRepr<T>, Ix3>;
@@ -77,7 +75,7 @@ where
 
 impl<T, U, C> SobelExt for ImageBase<U, C>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + Neg<Output = T> + FromPrimitive + Real,
     C: ColourModel,
 {

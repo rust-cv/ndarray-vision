@@ -1,5 +1,5 @@
 use crate::core::*;
-use ndarray::{prelude::*, Data, DataMut};
+use ndarray::{prelude::*, DataMut};
 use ndarray_stats::{histogram::Grid, HistogramExt};
 use num_traits::cast::{FromPrimitive, ToPrimitive};
 use num_traits::{Num, NumAssignOps};
@@ -22,7 +22,7 @@ where
 
 impl<T, U> HistogramEqExt<T> for ArrayBase<U, Ix3>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
 {
     type Output = Array<T, Ix3>;
@@ -77,7 +77,7 @@ where
 
 impl<T, U, C> HistogramEqExt<T> for ImageBase<U, C>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
     C: ColourModel,
 {

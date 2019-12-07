@@ -2,7 +2,7 @@ use crate::core::padding::*;
 use crate::core::{ColourModel, Image, ImageBase};
 use crate::processing::Error;
 use ndarray::prelude::*;
-use ndarray::{s, Data, DataMut, Zip};
+use ndarray::{s, DataMut, Zip};
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
@@ -47,7 +47,7 @@ fn kernel_centre(rows: usize, cols: usize) -> (usize, usize) {
 
 impl<T, U> ConvolutionExt for ArrayBase<U, Ix3>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
 {
     type Data = T;
@@ -104,7 +104,7 @@ where
 
 impl<T, U, C> ConvolutionExt for ImageBase<U, C>
 where
-    U: Data<Elem = T> + DataMut<Elem = T>,
+    U: DataMut<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
     C: ColourModel,
 {
