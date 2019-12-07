@@ -63,6 +63,18 @@ where
             model: PhantomData,
         }
     }
+
+    /// Given the shape of the image and a data vector create an image. If
+    /// the data sizes don't match a zero filled image will be returned instead
+    /// of panicking
+    pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Image<T, C> {
+        let data = Array3::from_shape_vec((rows, cols, C::channels()), data).unwrap();
+
+        Image {
+            data,
+            model: PhantomData,
+        }
+    }
 }
 
 impl<T, C> Image<T, C>
@@ -75,33 +87,6 @@ where
     pub fn new(rows: usize, columns: usize) -> Self {
         Image {
             data: Array3::zeros((rows, columns, C::channels())),
-            model: PhantomData,
-        }
-    }
-
-    /// Given the shape of the image and a data vector create an image. If
-    /// the data sizes don't match a zero filled image will be returned instead
-    /// of panicking
-    pub fn from_shape_data(rows: usize, cols: usize, data: Vec<T>) -> Self {
-        let data = Array3::from_shape_vec((rows, cols, C::channels()), data)
-            .unwrap_or_else(|_| Array3::<T>::zeros((rows, cols, C::channels())));
-
-        Image {
-            data,
-            model: PhantomData,
-        }
-    }
-}
-
-impl<T, C> ImageBase<T, C>
-where
-    T: Data,
-    C: ColourModel,
-{
-    /// Create an image given an existing ndarray
-    pub fn from_array(data: ArrayBase<T, Ix3>) -> Self {
-        Self {
-            data,
             model: PhantomData,
         }
     }

@@ -7,8 +7,11 @@ pub mod image;
 pub mod padding;
 /// Essential traits for the functionality of `ndarray-vision`
 pub mod traits;
+/// Some utility functions required in different modules
+pub mod util;
 
 pub use colour_models::*;
 pub use image::*;
 pub use padding::*;
 pub use traits::*;
+pub use util::*;
