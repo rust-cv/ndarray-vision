@@ -8,6 +8,7 @@
 * Image transformations and functions to create affine transform matrices
 * Type alias `Image` for `ImageBase<OwnedRepr<T>, _>` replicated old `Image` type
 * Type alias `ImageView` for `ImageBase<ViewRepr<&'a T>, _>`
+* Morphology module with dilation, erosion, union and intersection of binary images
 
 ### Changed
 * Integrated Padding strategies into convolutions

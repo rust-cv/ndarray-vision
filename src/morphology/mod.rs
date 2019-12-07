@@ -1,5 +1,5 @@
 use crate::core::*;
-use ndarray::{prelude::*, Data, DataMut, Zip};
+use ndarray::{prelude::*, DataMut, Zip};
 
 pub trait MorphologyExt {
     type Output;
@@ -23,7 +23,7 @@ pub trait MorphologyExt {
 
 impl<U> MorphologyExt for ArrayBase<U, Ix3>
 where
-    U: Data<Elem = bool> + DataMut<Elem = bool>,
+    U: DataMut<Elem = bool>,
 {
     type Output = Array<bool, Ix3>;
 
@@ -82,7 +82,7 @@ where
 
 impl<U, C> MorphologyExt for ImageBase<U, C>
 where
-    U: Data<Elem = bool> + DataMut<Elem = bool>,
+    U: DataMut<Elem = bool>,
     C: ColourModel,
 {
     type Output = Image<bool, C>;
