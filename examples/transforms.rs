@@ -1,5 +1,3 @@
-extern crate openblas_src;
-
 use ndarray_vision::core::*;
 use ndarray_vision::format::netpbm::*;
 use ndarray_vision::format::*;

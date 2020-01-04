@@ -7,20 +7,20 @@ repository = "https://github.com/xd009642/ndarray-vision"
 readme = "README.md"
 license = "MIT/Apache-2.0"
 keywords = ["image", "vision", "image-processing"]
-categories = ["Science", "Multimedia"]
+categories = ["science", "science::robotics", "multimedia", "multimedia::images", "graphics"]
 edition = "2018"
 
 [dependencies]
-ndarray = "0.13"
-ndarray-stats = "0.3"
-ndarray-linalg = "0.12"
-noisy_float = "0.1"
-num-traits = "0.2"
+ndarray = { version = "0.13", default-features = false }
+ndarray-stats = { version = "0.3", default-features = false }
+ndarray-linalg = { version = "0.12", default-features = false }
+noisy_float = { version = "0.1", default-features = false }
+num-traits = { version = "0.2", default-features = false }
 
 [dev-dependencies]
 ndarray-rand = "0.11.0"
 rand = "0.7"
 assert_approx_eq = "1.1.0"
 noisy_float = "0.1.11"
-openblas-src = "0.7"
 png = "0.15"
+ndarray-linalg = { version = "0.12", features = ["intel-mkl"] }
