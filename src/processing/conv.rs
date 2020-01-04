@@ -2,7 +2,7 @@ use crate::core::padding::*;
 use crate::core::{kernel_centre, ColourModel, Image, ImageBase};
 use crate::processing::Error;
 use ndarray::prelude::*;
-use ndarray::{s, DataMut, Zip};
+use ndarray::{s, DataMut, Data, Zip};
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
@@ -19,22 +19,22 @@ where
 
     /// Perform a convolution returning the resultant data
     /// applies the default padding of zero padding
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error>;
+    fn conv2d<U: Data<Elem=Self::Data>>(&self, kernel: ArrayBase<U, Ix3>) -> Result<Self::Output, Error>;
     /// Performs the convolution inplace mutating the containers data
     /// applies the default padding of zero padding
-    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error>;
+    fn conv2d_inplace<U: Data<Elem=Self::Data>>(&mut self, kernel: ArrayBase<U, Ix3>) -> Result<(), Error>;
     /// Perform a convolution returning the resultant data
     /// applies the default padding of zero padding
-    fn conv2d_with_padding(
+    fn conv2d_with_padding<U: Data<Elem=Self::Data>>(
         &self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<U, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<Self::Output, Error>;
     /// Performs the convolution inplace mutating the containers data
     /// applies the default padding of zero padding
-    fn conv2d_inplace_with_padding(
+    fn conv2d_inplace_with_padding<U: Data<Elem=Self::Data>>(
         &mut self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<U, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<(), Error>;
 }
@@ -47,18 +47,18 @@ where
     type Data = T;
     type Output = Array<T, Ix3>;
 
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error> {
+    fn conv2d<B: Data<Elem=T>>(&self, kernel: ArrayBase<B, Ix3>) -> Result<Self::Output, Error> {
         self.conv2d_with_padding(kernel, &ZeroPadding {})
     }
 
-    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
+    fn conv2d_inplace<B: Data<Elem=T>>(&mut self, kernel: ArrayBase<B, Ix3>) -> Result<(), Error> {
         self.assign(&self.conv2d_with_padding(kernel, &ZeroPadding {})?);
         Ok(())
     }
 
-    fn conv2d_with_padding(
+    fn conv2d_with_padding<B: Data<Elem=T>>(
         &self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<B, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<Self::Output, Error> {
         if self.shape()[2] != kernel.shape()[2] {
@@ -86,9 +86,9 @@ where
         }
     }
 
-    fn conv2d_inplace_with_padding(
+    fn conv2d_inplace_with_padding<B: Data<Elem=T>>(
         &mut self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<B, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<(), Error> {
         self.assign(&self.conv2d_with_padding(kernel, strategy)?);
@@ -105,7 +105,7 @@ where
     type Data = T;
     type Output = Image<T, C>;
 
-    fn conv2d(&self, kernel: ArrayView3<Self::Data>) -> Result<Self::Output, Error> {
+    fn conv2d<B: Data<Elem=T>>(&self, kernel: ArrayBase<B, Ix3>) -> Result<Self::Output, Error> {
         let data = self.data.conv2d(kernel)?;
         Ok(Self::Output {
             data,
@@ -113,13 +113,13 @@ where
         })
     }
 
-    fn conv2d_inplace(&mut self, kernel: ArrayView3<Self::Data>) -> Result<(), Error> {
+    fn conv2d_inplace<B: Data<Elem=T>>(&mut self, kernel: ArrayBase<B, Ix3>) -> Result<(), Error> {
         self.data.conv2d_inplace(kernel)
     }
 
-    fn conv2d_with_padding(
+    fn conv2d_with_padding<B: Data<Elem=T>>(
         &self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<B, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<Self::Output, Error> {
         let data = self.data.conv2d_with_padding(kernel, strategy)?;
@@ -129,9 +129,9 @@ where
         })
     }
 
-    fn conv2d_inplace_with_padding(
+    fn conv2d_inplace_with_padding<B: Data<Elem=T>>(
         &mut self,
-        kernel: ArrayView3<Self::Data>,
+        kernel: ArrayBase<B, Ix3>,
         strategy: &dyn PaddingStrategy<Self::Data>,
     ) -> Result<(), Error> {
         self.data.conv2d_inplace_with_padding(kernel, strategy)

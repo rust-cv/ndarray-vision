@@ -159,8 +159,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    extern crate openblas_src;
-
     use super::affine;
     use super::*;
     use crate::core::colour_models::Gray;
