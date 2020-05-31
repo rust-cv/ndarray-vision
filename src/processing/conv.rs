@@ -77,9 +77,20 @@ where
                 let tmp = self.pad((row_offset, col_offset), strategy);
 
                 Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
-                    let mult = &window * &kernel;
-                    let sums = mult.sum_axis(Axis(0)).sum_axis(Axis(0));
-                    result.slice_mut(s![i, j, ..]).assign(&sums);
+                    let mut pixel = vec![T::zero(); shape.2];
+                    let mut temp;
+                    for channel in 0..k_s[2] {
+                        temp = T::zero();
+                        for r in 0..k_s[0] {
+                            for c in 0..k_s[1] {
+                                temp += window[[r, c, channel]] * kernel[[r, c, channel]];
+                            }
+                        }
+                        pixel[channel] = temp;
+                    }
+                    result
+                        .slice_mut(s![i, j, ..])
+                        .assign(&ArrayView1::from(&pixel));
                 });
                 Ok(result)
             } else {
