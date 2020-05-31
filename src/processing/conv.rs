@@ -2,7 +2,7 @@ use crate::core::padding::*;
 use crate::core::{kernel_centre, ColourModel, Image, ImageBase};
 use crate::processing::Error;
 use ndarray::prelude::*;
-use ndarray::{s, Data, DataMut, Zip};
+use ndarray::{Data, DataMut, Zip};
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 use std::marker::Sized;
@@ -77,7 +77,6 @@ where
                 let tmp = self.pad((row_offset, col_offset), strategy);
 
                 Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
-                    let mut pixel = vec![T::zero(); shape.2];
                     let mut temp;
                     for channel in 0..k_s[2] {
                         temp = T::zero();
@@ -86,11 +85,10 @@ where
                                 temp += window[[r, c, channel]] * kernel[[r, c, channel]];
                             }
                         }
-                        pixel[channel] = temp;
+                        unsafe {
+                            *result.uget_mut([i, j, channel]) = temp;
+                        }
                     }
-                    result
-                        .slice_mut(s![i, j, ..])
-                        .assign(&ArrayView1::from(&pixel));
                 });
                 Ok(result)
             } else {
