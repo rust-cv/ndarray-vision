@@ -21,6 +21,10 @@ where
     /// if the coordinates are within the image bounds this should probably not
     /// be used in the name of performance
     fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>>;
+
+    /// Gets a value for a channel rows and columns can exceed bounds but the channel index must be
+    /// present
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T>;
 }
 
 /// Doesn't apply any padding to the image returning it unaltered regardless
@@ -38,6 +42,15 @@ where
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ZeroPadding;
 
+#[inline]
+fn is_out_of_bounds(dim: (usize, usize, usize), index: (isize, isize, usize)) -> bool {
+    index.0 < 0
+        || index.1 < 0
+        || index.0 >= dim.0 as isize
+        || index.1 >= dim.1 as isize
+        || index.2 >= dim.2
+}
+
 impl<T> PaddingStrategy<T> for NoPadding
 where
     T: Copy,
@@ -51,14 +64,21 @@ where
     }
 
     fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
-        if index.0 < 0
-            || index.0 >= image.dim().0 as isize
-            || index.1 < 0
-            || index.1 >= image.dim().1 as isize
-        {
+        let index = (index.0, index.1, 0);
+        if is_out_of_bounds(image.dim(), index) {
             None
         } else {
             Some(image.slice(s![index.0, index.1, ..]).to_owned())
+        }
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        if is_out_of_bounds(image.dim(), index) {
+            None
+        } else {
+            image
+                .get((index.0 as usize, index.1 as usize, index.2))
+                .copied()
         }
     }
 }
@@ -91,15 +111,22 @@ where
     }
 
     fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
-        if index.0 < 0
-            || index.0 >= image.dim().0 as isize
-            || index.1 < 0
-            || index.1 >= image.dim().1 as isize
-        {
+        let index = (index.0, index.1, 0);
+        if is_out_of_bounds(image.dim(), index) {
             let v = vec![self.0; image.dim().2];
             Some(Array1::from(v))
         } else {
             Some(image.slice(s![index.0, index.1, ..]).to_owned())
+        }
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        if is_out_of_bounds(image.dim(), index) {
+            Some(self.0)
+        } else {
+            image
+                .get((index.0 as usize, index.1 as usize, index.2))
+                .copied()
         }
     }
 }
@@ -120,6 +147,11 @@ where
     fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
         let padder = ConstantPadding(T::zero());
         padder.get_pixel(image, index)
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        let padder = ConstantPadding(T::zero());
+        padder.get_value(image, index)
     }
 }
 
