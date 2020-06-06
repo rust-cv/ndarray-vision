@@ -16,6 +16,21 @@ where
         image: ArrayView<T, Ix3>,
         padding: (usize, usize),
     ) -> ArrayBase<OwnedRepr<T>, Ix3>;
+
+    /// Taking in the image data and row and column return the pixel value
+    /// if the coordinates are within the image bounds this should probably not
+    /// be used in the name of performance
+    fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>>;
+
+    /// Gets a value for a channel rows and columns can exceed bounds but the channel index must be
+    /// present
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T>;
+
+    /// Returns true if the padder will return a value for (row, col) or if None if it can pad
+    /// an image at all. `NoPadding` is a special instance which will always be false
+    fn will_pad(&self, _coord: Option<(isize, isize)>) -> bool {
+        true
+    }
 }
 
 /// Doesn't apply any padding to the image returning it unaltered regardless
@@ -33,6 +48,15 @@ where
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ZeroPadding;
 
+#[inline]
+fn is_out_of_bounds(dim: (usize, usize, usize), index: (isize, isize, usize)) -> bool {
+    index.0 < 0
+        || index.1 < 0
+        || index.0 >= dim.0 as isize
+        || index.1 >= dim.1 as isize
+        || index.2 >= dim.2
+}
+
 impl<T> PaddingStrategy<T> for NoPadding
 where
     T: Copy,
@@ -43,6 +67,29 @@ where
         _padding: (usize, usize),
     ) -> ArrayBase<OwnedRepr<T>, Ix3> {
         image.to_owned()
+    }
+
+    fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
+        let index = (index.0, index.1, 0);
+        if is_out_of_bounds(image.dim(), index) {
+            None
+        } else {
+            Some(image.slice(s![index.0, index.1, ..]).to_owned())
+        }
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        if is_out_of_bounds(image.dim(), index) {
+            None
+        } else {
+            image
+                .get((index.0 as usize, index.1 as usize, index.2))
+                .copied()
+        }
+    }
+
+    fn will_pad(&self, _coord: Option<(isize, isize)>) -> bool {
+        false
     }
 }
 
@@ -72,6 +119,26 @@ where
 
         result
     }
+
+    fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
+        let index = (index.0, index.1, 0);
+        if is_out_of_bounds(image.dim(), index) {
+            let v = vec![self.0; image.dim().2];
+            Some(Array1::from(v))
+        } else {
+            Some(image.slice(s![index.0, index.1, ..]).to_owned())
+        }
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        if is_out_of_bounds(image.dim(), index) {
+            Some(self.0)
+        } else {
+            image
+                .get((index.0 as usize, index.1 as usize, index.2))
+                .copied()
+        }
+    }
 }
 
 impl<T> PaddingStrategy<T> for ZeroPadding
@@ -85,6 +152,16 @@ where
     ) -> ArrayBase<OwnedRepr<T>, Ix3> {
         let padder = ConstantPadding(T::zero());
         padder.pad(image, padding)
+    }
+
+    fn get_pixel(&self, image: ArrayView<T, Ix3>, index: (isize, isize)) -> Option<Array1<T>> {
+        let padder = ConstantPadding(T::zero());
+        padder.get_pixel(image, index)
+    }
+
+    fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T> {
+        let padder = ConstantPadding(T::zero());
+        padder.get_value(image, index)
     }
 }
 
