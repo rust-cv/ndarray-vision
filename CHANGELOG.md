@@ -1,7 +1,13 @@
 # Change Log
 
-## Develop Branch (Unreleased)
+## [Unreleased]
+### Added
 
+### Changed
+
+### Removed
+
+## [0.2.0] 2020-06-06
 ### Added
 * Padding strategies (`NoPadding`, `ConstantPadding`, `ZeroPadding`)
 * Threshold module with Otsu and Mean threshold algorithms
@@ -21,8 +27,7 @@
 
 ### Removed 
 
-## 0.1.1
-
+## [0.1.1] - 2019-07-31
 ### Added
 
 ### Changed
@@ -30,8 +35,7 @@
 
 ### Removed 
 
-## 0.1.0 (First release)
-
+## [0.1.0] - 2019-03-24
 ### Added
 * Image type
 * Colour Models (RGB, Gray, HSV, CIEXYZ, Channel-less)
