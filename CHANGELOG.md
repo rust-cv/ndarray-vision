@@ -15,6 +15,9 @@
 * Updated `ndarray-stats` to 0.2.0 adding `noisy_float` for median change
 * [INTERNAL] Disabled code coverage due to issues with tarpaulin and native libraries
 * Renamed `Image` to `ImageBase` which can take any implementor of the ndaray `Data` trait
+* Made images have `NoPadding` by default
+* No pad behaviour now keeps pixels near the edges the same as source value instead of making them black
+* Various performance enhancements in convolution and canny functions
 
 ### Removed 
 
