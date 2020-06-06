@@ -38,6 +38,51 @@ where
     ) -> Result<(), Error>;
 }
 
+fn apply_edge_convolution<T>(
+    array: ArrayView3<T>,
+    kernel: ArrayView3<T>,
+    coord: (usize, usize),
+    strategy: &impl PaddingStrategy<T>,
+) -> Vec<T>
+where
+    T: Copy + Num + NumAssignOps,
+{
+    let out_of_bounds =
+        |r, c| r < 0 || c < 0 || r >= array.dim().0 as isize || c >= array.dim().1 as isize;
+    let (row_offset, col_offset) = kernel_centre(kernel.dim().0, kernel.dim().1);
+
+    let top = coord.0 as isize - row_offset as isize;
+    let bottom = (coord.0 + row_offset + 1) as isize;
+    let left = coord.1 as isize - col_offset as isize;
+    let right = (coord.1 + col_offset + 1) as isize;
+    let channels = array.dim().2;
+    let mut res = vec![T::zero(); channels];
+    'processing: for (kr, r) in (top..bottom).enumerate() {
+        for (kc, c) in (left..right).enumerate() {
+            let oob = out_of_bounds(r, c);
+            if oob && !strategy.will_pad(Some((r, c))) {
+                for chan in 0..channels {
+                    res[chan] = array[[coord.0, coord.1, chan]];
+                }
+                break 'processing;
+            }
+            for chan in 0..channels {
+                // TODO this doesn't work on no padding
+                if oob {
+                    if let Some(val) = strategy.get_value(array, (r, c, chan)) {
+                        res[chan] += kernel[[kr, kc, chan]] * val;
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    res[chan] += kernel[[kr, kc, chan]] * array[[r as usize, c as usize, chan]];
+                }
+            }
+        }
+    }
+    res
+}
+
 impl<T, U> ConvolutionExt<T> for ArrayBase<U, Ix3>
 where
     U: DataMut<Elem = T>,
@@ -46,14 +91,14 @@ where
     type Output = Array<T, Ix3>;
 
     fn conv2d<B: Data<Elem = T>>(&self, kernel: ArrayBase<B, Ix3>) -> Result<Self::Output, Error> {
-        self.conv2d_with_padding(kernel, &ZeroPadding {})
+        self.conv2d_with_padding(kernel, &NoPadding {})
     }
 
     fn conv2d_inplace<B: Data<Elem = T>>(
         &mut self,
         kernel: ArrayBase<B, Ix3>,
     ) -> Result<(), Error> {
-        self.assign(&self.conv2d_with_padding(kernel, &ZeroPadding {})?);
+        self.assign(&self.conv2d_with_padding(kernel, &NoPadding {})?);
         Ok(())
     }
 
@@ -74,9 +119,8 @@ where
 
             if shape.0 > 0 && shape.1 > 0 {
                 let mut result = unsafe { Self::Output::uninitialized(shape) };
-                let tmp = self.pad((row_offset, col_offset), strategy);
 
-                Zip::indexed(tmp.windows(kernel.dim())).apply(|(i, j, _), window| {
+                Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
                     let mut temp;
                     for channel in 0..k_s[2] {
                         temp = T::zero();
@@ -86,10 +130,56 @@ where
                             }
                         }
                         unsafe {
-                            *result.uget_mut([i, j, channel]) = temp;
+                            *result.uget_mut([i + row_offset, j + col_offset, channel]) = temp;
                         }
                     }
                 });
+                for c in 0..shape.1 {
+                    for r in 0..row_offset {
+                        let pixel =
+                            apply_edge_convolution(self.view(), kernel.view(), (r, c), strategy);
+                        for chan in 0..k_s[2] {
+                            unsafe {
+                                *result.uget_mut([r, c, chan]) = pixel[chan];
+                            }
+                        }
+                        let bottom = shape.0 - r - 1;
+                        let pixel = apply_edge_convolution(
+                            self.view(),
+                            kernel.view(),
+                            (bottom, c),
+                            strategy,
+                        );
+                        for chan in 0..k_s[2] {
+                            unsafe {
+                                *result.uget_mut([bottom, c, chan]) = pixel[chan];
+                            }
+                        }
+                    }
+                }
+                for r in (row_offset)..(shape.0 - row_offset) {
+                    for c in 0..col_offset {
+                        let pixel =
+                            apply_edge_convolution(self.view(), kernel.view(), (r, c), strategy);
+                        for chan in 0..k_s[2] {
+                            unsafe {
+                                *result.uget_mut([r, c, chan]) = pixel[chan];
+                            }
+                        }
+                        let right = shape.1 - c - 1;
+                        let pixel = apply_edge_convolution(
+                            self.view(),
+                            kernel.view(),
+                            (r, right),
+                            strategy,
+                        );
+                        for chan in 0..k_s[2] {
+                            unsafe {
+                                *result.uget_mut([r, right, chan]) = pixel[chan];
+                            }
+                        }
+                    }
+                }
                 Ok(result)
             } else {
                 Err(Error::InvalidDimensions)
@@ -187,11 +277,11 @@ mod tests {
             0, 1, 1, 0, 0,
         ];
         let output_pixels = vec![
-            2, 2, 3, 1, 1,
-            1, 4, 3, 4, 1,
-            1, 2, 4, 3, 3,
-            1, 2, 3, 4, 1,
-            0, 2, 2, 1, 1, 
+            1, 1, 1, 0, 0,
+            0, 4, 3, 4, 0,
+            0, 2, 4, 3, 1,
+            0, 2, 3, 4, 0,
+            0, 1, 1, 0, 0, 
         ];
 
         let kern = arr3(
@@ -235,8 +325,8 @@ mod tests {
 
         let mut input = Image::<u8, Gray>::from_shape_data(5, 5, input_pixels);
         let expected = Image::<u8, Gray>::from_shape_data(5, 5, output_pixels);
-
-        input.conv2d_inplace(kern.view()).unwrap();
+        let padding = ZeroPadding {};
+        input.conv2d_inplace_with_padding(kern.view(), &padding).unwrap();
 
         assert_eq!(expected, input);
     }

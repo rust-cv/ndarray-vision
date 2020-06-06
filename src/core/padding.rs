@@ -25,6 +25,12 @@ where
     /// Gets a value for a channel rows and columns can exceed bounds but the channel index must be
     /// present
     fn get_value(&self, image: ArrayView<T, Ix3>, index: (isize, isize, usize)) -> Option<T>;
+
+    /// Returns true if the padder will return a value for (row, col) or if None if it can pad
+    /// an image at all. `NoPadding` is a special instance which will always be false
+    fn will_pad(&self, _coord: Option<(isize, isize)>) -> bool {
+        true
+    }
 }
 
 /// Doesn't apply any padding to the image returning it unaltered regardless
@@ -80,6 +86,10 @@ where
                 .get((index.0 as usize, index.1 as usize, index.2))
                 .copied()
         }
+    }
+
+    fn will_pad(&self, _coord: Option<(isize, isize)>) -> bool {
+        false
     }
 }
 
