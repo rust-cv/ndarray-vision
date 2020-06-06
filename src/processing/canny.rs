@@ -1,7 +1,7 @@
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use crate::processing::*;
 use ndarray::prelude::*;
-use ndarray::IntoDimension;
+use ndarray::{DataMut, IntoDimension};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::collections::HashSet;
 use std::marker::PhantomData;
@@ -38,8 +38,9 @@ pub struct CannyParameters<T> {
     pub t2: T,
 }
 
-impl<T, C> CannyEdgeDetectorExt<T> for Image<T, C>
+impl<T, U, C> CannyEdgeDetectorExt<T> for ImageBase<U, C>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
     C: ColourModel,
 {
@@ -54,8 +55,9 @@ where
     }
 }
 
-impl<T> CannyEdgeDetectorExt<T> for Array3<T>
+impl<T, U> CannyEdgeDetectorExt<T> for ArrayBase<U, Ix3>
 where
+    U: DataMut<Elem = T>,
     T: Copy + Clone + FromPrimitive + Real + Num + NumAssignOps,
 {
     type Output = Array3<bool>;
@@ -320,5 +322,4 @@ mod tests {
 
         assert_eq!(result, expected);
     }
-
 }

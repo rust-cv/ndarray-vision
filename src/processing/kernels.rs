@@ -36,7 +36,7 @@ pub trait FixedDimensionKernelBuilder<T> {
 }
 
 /// Create a Laplacian filter, this provides the 2nd spatial derivative of an
-/// image. 
+/// image.
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct LaplaceFilter;
 
@@ -44,7 +44,7 @@ pub struct LaplaceFilter;
 #[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LaplaceType {
     /// Standard filter and the default parameter choice, for a 3x3x1 matrix it is:
-    /// ```ignore
+    /// ```text
     /// [0, -1, 0]
     /// [-1, 4, -1]
     /// [0, -1, 0]
@@ -52,7 +52,7 @@ pub enum LaplaceType {
     Standard,
     /// The diagonal filter also contains derivatives for diagonal lines and
     /// for a 3x3x1 matrix is given by:
-    /// ```ignore
+    /// ```text
     /// [-1, -1, -1]
     /// [-1, 8, -1]
     /// [-1, -1, -1]
@@ -101,8 +101,8 @@ where
     T: Copy + Clone + FromPrimitive + Num,
 {
     /// The parameter for the Gaussian filter is the horizontal and vertical
-    /// covariances to form the covariance matrix. 
-    /// ```ignore
+    /// covariances to form the covariance matrix.
+    /// ```text
     /// [ Params[0], 0]
     /// [ 0, Params[1]]
     /// ```
@@ -304,13 +304,14 @@ mod tests {
 
     #[test]
     fn test_laplace_filters() {
-        let standard = LaplaceFilter::build().unwrap();
+        let standard: Array3<i64> = LaplaceFilter::build().unwrap();
         assert_eq!(
             standard,
             arr3(&[[[0], [-1], [0]], [[-1], [4], [-1]], [[0], [-1], [0]]])
         );
 
-        let standard = LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
+        let standard: Array3<i64> =
+            LaplaceFilter::build_with_params(LaplaceType::Diagonal).unwrap();
         assert_eq!(
             standard,
             arr3(&[[[-1], [-1], [-1]], [[-1], [8], [-1]], [[-1], [-1], [-1]]])

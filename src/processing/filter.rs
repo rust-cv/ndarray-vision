@@ -1,26 +1,32 @@
-use crate::core::{ColourModel, Image};
+use crate::core::{ColourModel, Image, ImageBase};
 use ndarray::prelude::*;
-use ndarray::{IntoDimension, Zip};
+use ndarray::{Data, IntoDimension, OwnedRepr, Zip};
 use ndarray_stats::interpolate::*;
 use ndarray_stats::Quantile1dExt;
+use noisy_float::types::n64;
 use num_traits::{FromPrimitive, Num, ToPrimitive};
+use std::iter::FromIterator;
 use std::marker::PhantomData;
 
 /// Median filter, given a region to move over the image, each pixel is given
 /// the median value of itself and it's neighbours
 pub trait MedianFilterExt {
+    type Output;
     /// Run the median filter given the region. Median is assumed to be calculated
     /// independently for each channel.
-    fn median_filter<E>(&self, region: E) -> Self
+    fn median_filter<E>(&self, region: E) -> Self::Output
     where
         E: IntoDimension<Dim = Ix2>;
 }
 
-impl<T> MedianFilterExt for Array3<T>
+impl<T, U> MedianFilterExt for ArrayBase<U, Ix3>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + ToPrimitive + Num + Ord,
 {
-    fn median_filter<E>(&self, region: E) -> Self
+    type Output = ArrayBase<OwnedRepr<T>, Ix3>;
+
+    fn median_filter<E>(&self, region: E) -> Self::Output
     where
         E: IntoDimension<Dim = Ix2>,
     {
@@ -31,7 +37,7 @@ where
         let mut result = Array3::<T>::zeros(self.dim());
         Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
-            if let Some(v) = flat_window.quantile_mut::<Linear>(0.5) {
+            if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear {}) {
                 result
                     .get_mut([i + r_offset, j + c_offset, k])
                     .map(|r| *r = v);
@@ -41,12 +47,15 @@ where
     }
 }
 
-impl<T, C> MedianFilterExt for Image<T, C>
+impl<T, U, C> MedianFilterExt for ImageBase<U, C>
 where
+    U: Data<Elem = T>,
     T: Copy + Clone + FromPrimitive + ToPrimitive + Num + Ord,
     C: ColourModel,
 {
-    fn median_filter<E>(&self, region: E) -> Self
+    type Output = Image<T, C>;
+
+    fn median_filter<E>(&self, region: E) -> Self::Output
     where
         E: IntoDimension<Dim = Ix2>,
     {
