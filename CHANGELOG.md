@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- HoG feature extractor
 
 ### Changed
 - Fixed orientation of sobel filters
