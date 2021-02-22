@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 ndarray = { version = "0.13", default-features = false }
 ndarray-stats = { version = "0.3", default-features = false }
-ndarray-linalg = { version = "0.12", default-features = false }
+ndarray-linalg = { version = "0.13", default-features = false }
 noisy_float = { version = "0.1", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 
@@ -23,4 +23,4 @@ rand = "0.7"
 assert_approx_eq = "1.1.0"
 noisy_float = "0.1.11"
 png = "0.16"
-ndarray-linalg = { version = "0.12", features = ["intel-mkl"] }
+ndarray-linalg = { version = "0.13", features = ["intel-mkl"] }
