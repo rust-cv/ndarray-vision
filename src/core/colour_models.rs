@@ -199,7 +199,7 @@ where
         let mut res = Array3::<_>::zeros((image.rows(), image.cols(), HSV::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let red = pix[[0, 0, 0]];
             let green = pix[[0, 0, 1]];
             let blue = pix[[0, 0, 2]];
@@ -228,7 +228,7 @@ where
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let h = pix[[0, 0, 0]];
             let s = pix[[0, 0, 1]];
             let v = pix[[0, 0, 2]];
@@ -257,7 +257,7 @@ where
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), Gray::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let r = normalise_pixel_value(pix[[0, 0, 0]]);
             let g = normalise_pixel_value(pix[[0, 0, 1]]);
             let b = normalise_pixel_value(pix[[0, 0, 2]]);
@@ -288,7 +288,7 @@ where
         let mut res = Array3::<T>::zeros((image.rows(), image.cols(), RGB::channels()));
         let window = image.data.windows((1, 1, image.channels()));
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let gray = pix[[0, 0, 0]];
 
             res.slice_mut(s![i, j, ..])
@@ -321,7 +321,7 @@ where
             [0.0139322, 0.0971045, 0.7141733],
         ]);
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let pixel = pix
                 .index_axis(Axis(0), 0)
                 .index_axis(Axis(0), 0)
@@ -360,7 +360,7 @@ where
             [0.0719453, -0.2289914, 1.4052427],
         ]);
 
-        Zip::indexed(window).for_each(|(i, j, _), pix| {
+        Zip::indexed(window).apply(|(i, j, _), pix| {
             let pixel = pix
                 .index_axis(Axis(0), 0)
                 .index_axis(Axis(0), 0)

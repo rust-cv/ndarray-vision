@@ -120,7 +120,7 @@ where
             if shape.0 > 0 && shape.1 > 0 {
                 let mut result = unsafe { Self::Output::uninitialized(shape) };
 
-                Zip::indexed(self.windows(kernel.dim())).for_each(|(i, j, _), window| {
+                Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
                     let mut temp;
                     for channel in 0..k_s[2] {
                         temp = T::zero();
