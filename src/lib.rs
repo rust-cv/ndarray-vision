@@ -28,13 +28,18 @@
 /// The core of `ndarray-vision` contains the `Image` type and colour models
 pub mod core;
 /// Image enhancement intrinsics and algorithms
+#[cfg(feature="enhancement")]
 pub mod enhancement;
 /// Image formats - encoding and decoding images from bytes for saving and
 /// loading
+#[cfg(feature="format")]
 pub mod format;
 /// Operations relating to morphological image processing
+#[cfg(feature="morphology")]
 pub mod morphology;
 /// Image processing intrinsics and common filters/algorithms.
+#[cfg(feature="processing")]
 pub mod processing;
 /// Image transforms and warping
+#[cfg(feature="transform")]
 pub mod transform;

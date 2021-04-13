@@ -24,9 +24,9 @@ before_install:
 # fi
 
 script:
-- cargo clean
-- cargo build
-- cargo test
+- cargo install cargo-all-features
+- cargo build-all-features
+- cargo test --all-features
 
 # after_success: |
 # if [[ "$TRAVIS_RUST_VERSION" == nightly ]]; then
