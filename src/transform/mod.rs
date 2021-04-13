@@ -1,7 +1,7 @@
 use crate::core::{ColourModel, Image, ImageBase};
 use crate::transform::affine::translation;
 use ndarray::{array, prelude::*, s, Data};
-use ndarray_linalg::solve::Inverse;
+use ndarray_linalg::*;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
 

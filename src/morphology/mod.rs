@@ -32,7 +32,7 @@ where
         let (ro, co) = kernel_centre(sh[0], sh[1]);
         let mut result = Self::Output::from_elem(self.dim(), false);
         if self.shape()[0] >= sh[0] && self.shape()[1] >= sh[1] {
-            Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).apply(
+            Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).for_each(
                 |(i, j), window| {
                     result[[i + ro, j + co, 0]] = (&kernel & &window) == kernel;
                 },
@@ -50,7 +50,7 @@ where
         let (ro, co) = kernel_centre(sh[0], sh[1]);
         let mut result = Self::Output::from_elem(self.dim(), false);
         if self.shape()[0] >= sh[0] && self.shape()[1] >= sh[1] {
-            Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).apply(
+            Zip::indexed(self.slice(s![.., .., 0]).windows(kernel.dim())).for_each(
                 |(i, j), window| {
                     result[[i + ro, j + co, 0]] = (&kernel & &window).iter().any(|x| *x);
                 },
