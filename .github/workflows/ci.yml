@@ -26,11 +26,11 @@ jobs:
           components: rustfmt
       - name: build
         run: |
-          cargo check --no-default-features
-          cargo check --all-features
+          cargo install cargo-all-features
+          cargo check-all-features
       - name: test
         run: |
-          cargo test 
+          cargo test --all-features
       - name: check formatting
         run: cargo fmt -- --check
       - name: code-coverage
