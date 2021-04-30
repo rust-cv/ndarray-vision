@@ -1,0 +1,25 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  target-branch: develop
+  ignore:
+  - dependency-name: ndarray-rand
+    versions:
+    - 0.13.0
+    - 0.14.0
+  - dependency-name: ndarray-linalg
+    versions:
+    - 0.13.0
+  - dependency-name: rand
+    versions:
+    - 0.8.0
+  - dependency-name: ndarray-stats
+    versions:
+    - 0.4.0
+  - dependency-name: ndarray
+    versions:
+    - 0.14.0
