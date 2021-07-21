@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::processing::*;
 use core::mem::MaybeUninit;
 use core::ops::Neg;
-use ndarray::{prelude::*, s, DataMut, OwnedRepr};
+use ndarray::{prelude::*, s, DataMut, OwnedRepr, Zip};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -83,8 +83,14 @@ where
         magnitude.mapv_inplace(|x| x.sqrt());
         magnitude.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
 
-        let mut rotation = v_deriv / h_deriv;
-        rotation.mapv_inplace(|x| x.atan());
+        let dim = h_deriv.dim();
+        let mut rotation = Array3::uninit((dim.0, dim.1, dim.2));
+        Zip::from(&mut rotation)
+            .and(&h_deriv)
+            .and(&v_deriv)
+            .for_each(|r, &h, &v| *r = MaybeUninit::new(v.atan2(h)));
+
+        let rotation = unsafe { rotation.assume_init() };
 
         Ok((magnitude, rotation))
     }
@@ -107,5 +113,26 @@ where
         self.data
             .full_sobel()
             .map(|(m, r)| (Image::from_data(m), Image::from_data(r)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple() {
+        let mut image: Image<f64, Gray> = ImageBase::new(11, 11);
+        image.data.slice_mut(s![4..6, 4..6, ..]).fill(1.0);
+        image.data.slice_mut(s![3..7, 5, ..]).fill(1.0);
+        image.data.slice_mut(s![5, 3..7, ..]).fill(1.0);
+
+        let sobel = image.clone().full_sobel().unwrap();
+
+        println!("Source: {:?}", image);
+        println!("mag: {:?}", sobel.0);
+        println!("rot: {:?}", sobel.1);
+
+        panic!();
     }
 }
