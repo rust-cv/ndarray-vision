@@ -5,7 +5,6 @@ use ndarray_stats::interpolate::*;
 use ndarray_stats::Quantile1dExt;
 use noisy_float::types::n64;
 use num_traits::{FromPrimitive, Num, ToPrimitive};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 
 /// Median filter, given a region to move over the image, each pixel is given
@@ -35,7 +34,7 @@ where
         let c_offset = shape[1] / 2;
         let region = (shape[0], shape[1], 1);
         let mut result = Array3::<T>::zeros(self.dim());
-        Zip::indexed(self.windows(region)).apply(|(i, j, k), window| {
+        Zip::indexed(self.windows(region)).for_each(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
             if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear {}) {
                 result

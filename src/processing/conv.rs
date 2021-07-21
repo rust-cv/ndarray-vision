@@ -1,6 +1,7 @@
 use crate::core::padding::*;
 use crate::core::{kernel_centre, ColourModel, Image, ImageBase};
 use crate::processing::Error;
+use core::mem::MaybeUninit;
 use ndarray::prelude::*;
 use ndarray::{Data, DataMut, Zip};
 use num_traits::{Num, NumAssignOps};
@@ -118,9 +119,9 @@ where
             let shape = (self.shape()[0], self.shape()[1], self.shape()[2]);
 
             if shape.0 > 0 && shape.1 > 0 {
-                let mut result = unsafe { Self::Output::uninitialized(shape) };
+                let mut result = Self::Output::uninit(shape);
 
-                Zip::indexed(self.windows(kernel.dim())).apply(|(i, j, _), window| {
+                Zip::indexed(self.windows(kernel.dim())).for_each(|(i, j, _), window| {
                     let mut temp;
                     for channel in 0..k_s[2] {
                         temp = T::zero();
@@ -130,7 +131,8 @@ where
                             }
                         }
                         unsafe {
-                            *result.uget_mut([i + row_offset, j + col_offset, channel]) = temp;
+                            *result.uget_mut([i + row_offset, j + col_offset, channel]) =
+                                MaybeUninit::new(temp);
                         }
                     }
                 });
@@ -140,7 +142,7 @@ where
                             apply_edge_convolution(self.view(), kernel.view(), (r, c), strategy);
                         for chan in 0..k_s[2] {
                             unsafe {
-                                *result.uget_mut([r, c, chan]) = pixel[chan];
+                                *result.uget_mut([r, c, chan]) = MaybeUninit::new(pixel[chan]);
                             }
                         }
                         let bottom = shape.0 - r - 1;
@@ -152,7 +154,7 @@ where
                         );
                         for chan in 0..k_s[2] {
                             unsafe {
-                                *result.uget_mut([bottom, c, chan]) = pixel[chan];
+                                *result.uget_mut([bottom, c, chan]) = MaybeUninit::new(pixel[chan]);
                             }
                         }
                     }
@@ -163,7 +165,7 @@ where
                             apply_edge_convolution(self.view(), kernel.view(), (r, c), strategy);
                         for chan in 0..k_s[2] {
                             unsafe {
-                                *result.uget_mut([r, c, chan]) = pixel[chan];
+                                *result.uget_mut([r, c, chan]) = MaybeUninit::new(pixel[chan]);
                             }
                         }
                         let right = shape.1 - c - 1;
@@ -175,12 +177,12 @@ where
                         );
                         for chan in 0..k_s[2] {
                             unsafe {
-                                *result.uget_mut([r, right, chan]) = pixel[chan];
+                                *result.uget_mut([r, right, chan]) = MaybeUninit::new(pixel[chan]);
                             }
                         }
                     }
                 }
-                Ok(result)
+                Ok(unsafe { result.assume_init() })
             } else {
                 Err(Error::InvalidDimensions)
             }
