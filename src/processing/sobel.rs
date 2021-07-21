@@ -1,5 +1,6 @@
 use crate::core::*;
 use crate::processing::*;
+use core::mem::MaybeUninit;
 use core::ops::Neg;
 use ndarray::{prelude::*, s, DataMut, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
@@ -28,16 +29,18 @@ where
     let v_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
     let h_temp: Array3<T> = SobelFilter::build_with_params(Orientation::Horizontal).unwrap();
     let shape = (v_temp.shape()[0], v_temp.shape()[1], mat.shape()[2]);
-    let mut h_kernel = unsafe { Array3::<T>::uninitialized(shape) };
-    let mut v_kernel = unsafe { Array3::<T>::uninitialized(shape) };
+    let mut h_kernel = Array3::<T>::uninit(shape);
+    let mut v_kernel = Array3::<T>::uninit(shape);
     for i in 0..mat.dim().2 {
-        h_kernel
-            .slice_mut(s![.., .., i])
-            .assign(&h_temp.slice(s![.., .., 0]));
-        v_kernel
-            .slice_mut(s![.., .., i])
-            .assign(&v_temp.slice(s![.., .., 0]));
+        h_temp
+            .slice(s![.., .., 0])
+            .assign_to(h_kernel.slice_mut(s![.., .., i]));
+        v_temp
+            .slice(s![.., .., 0])
+            .assign_to(v_kernel.slice_mut(s![.., .., i]));
     }
+    let h_kernel = unsafe { h_kernel.assume_init() };
+    let v_kernel = unsafe { v_kernel.assume_init() };
     let h_deriv = mat.conv2d(h_kernel.view())?;
     let v_deriv = mat.conv2d(v_kernel.view())?;
 
@@ -54,7 +57,7 @@ where
     fn apply_sobel(&self) -> Result<Self::Output, Error> {
         let (h_deriv, v_deriv) = get_edge_images(self)?;
         let res_shape = h_deriv.dim();
-        let mut result = unsafe { Self::Output::uninitialized(res_shape) };
+        let mut result = Self::Output::uninit(res_shape);
         for r in 0..res_shape.0 {
             for c in 0..res_shape.1 {
                 for channel in 0..res_shape.2 {
@@ -65,12 +68,12 @@ where
                         temp = T::one();
                     }
                     unsafe {
-                        *result.uget_mut([r, c, channel]) = temp;
+                        *result.uget_mut([r, c, channel]) = MaybeUninit::new(temp);
                     }
                 }
             }
         }
-        Ok(result)
+        Ok(unsafe { result.assume_init() })
     }
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {

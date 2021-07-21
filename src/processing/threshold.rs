@@ -8,7 +8,6 @@ use ndarray_stats::QuantileExt;
 use num_traits::cast::FromPrimitive;
 use num_traits::cast::ToPrimitive;
 use num_traits::{Num, NumAssignOps};
-use std::iter::FromIterator;
 use std::marker::PhantomData;
 
 // Development

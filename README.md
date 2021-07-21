@@ -18,4 +18,11 @@ See the examples and tests for basic usage.
 * Sobel operator
 * Canny Edge Detection
 * Histogram Equalisation
+* Thresholding (basic, mean, Otsu)
 * Encoding and decoding PPM (binary or plaintext)
+
+# Performance 
+
+Not a lot of work has been put towards performance yet but a rudimentary
+benchmarking project exists [here](https://github.com/xd009642/ndarray-vision-benchmarking)
+for comparative benchmarks against other image processing libraries in rust.

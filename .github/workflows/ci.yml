@@ -1,0 +1,40 @@
+name: Build
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version:
+          - stable
+          - beta
+          - nightly 
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.version }}
+          override: true
+          components: rustfmt
+      - name: build
+        run: |
+          cargo check --no-default-features
+          cargo check --all-features
+      - name: test
+        run: |
+          cargo test 
+      - name: check formatting
+        run: cargo fmt -- --check
+      - name: code-coverage
+        run: |
+          cargo install cargo-tarpaulin --force --git https://github.com/xd009642/tarpaulin --branch develop
+          cargo tarpaulin --force-clean --coveralls ${{ secrets.COVERALLS_TOKEN }}
+        if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.version == 'nightly'
