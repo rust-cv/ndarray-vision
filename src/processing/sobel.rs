@@ -1,6 +1,6 @@
-use core::mem::MaybeUninit;
 use crate::core::*;
 use crate::processing::*;
+use core::mem::MaybeUninit;
 use core::ops::Neg;
 use ndarray::{prelude::*, s, DataMut, OwnedRepr};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
@@ -73,7 +73,7 @@ where
                 }
             }
         }
-        Ok(unsafe { result.assume_init() } )
+        Ok(unsafe { result.assume_init() })
     }
 
     fn full_sobel(&self) -> Result<(Self::Output, Self::Output), Error> {
