@@ -1,3 +1,4 @@
+use num_traits::real::Real;
 /// When working with pixel data types may have odd bitdepths or not use the
 /// full range of the value. We can't assume every image with `u8` ranges from
 /// [0..255]. Additionally, floating point representations of pixels normally
@@ -31,6 +32,25 @@ pub trait PixelBound {
     /// deemed meaningless for types like floats which suffer from rounding
     /// issues
     fn discrete_levels() -> Option<usize>;
+}
+
+pub struct Unbounded<T>(pub T);
+
+impl<T> PixelBound for Unbounded<T>
+where
+    T: Real,
+{
+    fn min_pixel() -> Self {
+        Self(T::min_value())
+    }
+
+    fn max_pixel() -> Self {
+        Self(T::max_value())
+    }
+
+    fn discrete_levels() -> Option<usize> {
+        None
+    }
 }
 
 impl PixelBound for f64 {
