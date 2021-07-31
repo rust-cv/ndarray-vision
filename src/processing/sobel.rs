@@ -2,7 +2,7 @@ use crate::core::*;
 use crate::processing::*;
 use core::mem::MaybeUninit;
 use core::ops::Neg;
-use ndarray::{prelude::*, s, DataMut, OwnedRepr};
+use ndarray::{prelude::*, s, DataMut, OwnedRepr, Zip};
 use num_traits::{cast::FromPrimitive, real::Real, Num, NumAssignOps};
 use std::marker::Sized;
 
@@ -61,12 +61,9 @@ where
         for r in 0..res_shape.0 {
             for c in 0..res_shape.1 {
                 for channel in 0..res_shape.2 {
-                    let mut temp = (h_deriv[[r, c, channel]].powi(2)
+                    let temp = (h_deriv[[r, c, channel]].powi(2)
                         + v_deriv[[r, c, channel]].powi(2))
                     .sqrt();
-                    if temp > T::one() {
-                        temp = T::one();
-                    }
                     unsafe {
                         *result.uget_mut([r, c, channel]) = MaybeUninit::new(temp);
                     }
@@ -81,10 +78,15 @@ where
 
         let mut magnitude = h_deriv.mapv(|x| x.powi(2)) + v_deriv.mapv(|x| x.powi(2));
         magnitude.mapv_inplace(|x| x.sqrt());
-        magnitude.mapv_inplace(|x| if x > T::one() { T::one() } else { x });
 
-        let mut rotation = v_deriv / h_deriv;
-        rotation.mapv_inplace(|x| x.atan());
+        let dim = h_deriv.dim();
+        let mut rotation = Array3::uninit((dim.0, dim.1, dim.2));
+        Zip::from(&mut rotation)
+            .and(&h_deriv)
+            .and(&v_deriv)
+            .for_each(|r, &h, &v| *r = MaybeUninit::new(h.atan2(v)));
+
+        let rotation = unsafe { rotation.assume_init() };
 
         Ok((magnitude, rotation))
     }
@@ -107,5 +109,56 @@ where
         self.data
             .full_sobel()
             .map(|(m, r)| (Image::from_data(m), Image::from_data(r)))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use approx::*;
+
+    #[test]
+    fn simple() {
+        let mut image: Image<f64, Gray> = ImageBase::new(11, 11);
+        image.data.slice_mut(s![4..7, 4..7, ..]).fill(1.0);
+        image.data.slice_mut(s![3..8, 5, ..]).fill(1.0);
+        image.data.slice_mut(s![5, 3..8, ..]).fill(1.0);
+
+        let sobel = image.full_sobel().unwrap();
+
+        // Did a calculation of sobel_mag[1..9, 1..9, ..] in a spreadsheet
+        #[rustfmt::skip]
+        let mag = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 1.41421356237301, 2.0, 1.41421356237301, 0.0, 0.0, 0.0,
+            0.0, 0.0, 1.41421356237301, 4.24264068711929, 4.0, 4.24264068711929, 1.4142135623731, 0.0, 0.0, 
+            0.0, 1.4142135623731, 4.24264068711929, 4.24264068711929, 2.0, 4.24264068711929, 4.24264068711929, 1.4142135623731, 0.0,
+            0.0, 2.0, 4.0, 2.0, 0.0, 2.0, 4.0, 2.0, 0.0,
+            0.0, 1.4142135623731, 4.24264068711929, 4.24264068711929, 2.0, 4.24264068711929, 4.24264068711929, 1.4142135623731, 0.0,
+            0.0, 0.0, 1.4142135623731, 4.24264068711929, 4.0, 4.24264068711929, 1.4142135623731, 0.0,
+            0.0, 0.0, 0.0, 0.0, 1.4142135623731, 2.0, 1.4142135623731, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        ];
+
+        let mag = Array::from_shape_vec((9, 9), mag).unwrap();
+
+        assert_abs_diff_eq!(sobel.0.data.slice(s![1..10, 1..10, 0]), mag, epsilon = 1e-5);
+
+        let only_mag = image.apply_sobel().unwrap();
+        assert_abs_diff_eq!(sobel.0.data, only_mag.data);
+
+        // Did a calculation of sobel_rot[1..9, 1..9, ..] in a spreadsheet
+        #[rustfmt::skip]
+        let rot = vec![0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,-2.35619449019234,3.14159265358979,2.35619449019234,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,-2.35619449019234,-2.35619449019234,3.14159265358979,2.35619449019234,2.35619449019234,0.00000000000000,0.00000000000000,
+                       0.00000000000000,-2.35619449019234,-2.35619449019234,-2.35619449019234,3.14159265358979,2.35619449019234,2.35619449019234,2.35619449019234,0.00000000000000,
+                       0.00000000000000,-1.57079632679490,-1.57079632679490,-1.57079632679490,0.00000000000000,1.57079632679490,1.57079632679490,1.57079632679490,0.00000000000000,
+                       0.00000000000000,-0.78539816339745,-0.78539816339745,-0.78539816339745,0.00000000000000,0.78539816339745,0.78539816339745,0.78539816339745,0.00000000000000,
+                       0.00000000000000,0.00000000000000,-0.78539816339745,-0.78539816339745,0.00000000000000,0.78539816339745,0.78539816339745,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,-0.78539816339745,0.00000000000000,0.78539816339745,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000];
+        let rot = Array::from_shape_vec((9, 9), rot).unwrap();
+
+        assert_abs_diff_eq!(sobel.1.data.slice(s![1..10, 1..10, 0]), rot, epsilon = 1e-5);
     }
 }

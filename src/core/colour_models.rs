@@ -867,7 +867,7 @@ impl ColourModel for RGBA {
 mod tests {
     use super::*;
     use ndarray::s;
-    use ndarray_rand::{RandomExt, F32};
+    use ndarray_rand::RandomExt;
     use ndarray_stats::QuantileExt;
     use rand::distributions::Uniform;
 
@@ -920,7 +920,7 @@ mod tests {
     #[test]
     fn basic_xyz_rgb_checks() {
         let mut image = Image::<f32, RGB>::new(100, 100);
-        let new_data = Array3::<f32>::random(image.data.dim(), F32(Uniform::new(0.0, 1.0)));
+        let new_data = Array3::<f32>::random(image.data.dim(), Uniform::new(0.0, 1.0));
         image.data = new_data;
 
         let xyz = Image::<f32, CIEXYZ>::from(image.clone());
@@ -937,7 +937,7 @@ mod tests {
     #[test]
     fn generic3_checks() {
         let mut image = Image::<f32, RGB>::new(100, 100);
-        let new_data = Array3::<f32>::random(image.data.dim(), F32(Uniform::new(0.0, 1.0)));
+        let new_data = Array3::<f32>::random(image.data.dim(), Uniform::new(0.0, 1.0));
         image.data = new_data;
         let gen = Image::<_, Generic3>::from(image.clone());
         // Normally don't check floats with equality but data shouldn't have
@@ -987,7 +987,7 @@ mod tests {
     #[test]
     fn generic_model_expand() {
         let mut image = Image::<f32, Generic1>::new(100, 100);
-        let new_data = Array3::<f32>::random(image.data.dim(), F32(Uniform::new(0.0, 1.0)));
+        let new_data = Array3::<f32>::random(image.data.dim(), Uniform::new(0.0, 1.0));
         image.data = new_data;
 
         let large = Image::<_, Generic5>::from(image.clone());
