@@ -4,6 +4,8 @@
 ### Added
 
 ### Changed
+- Fixed orientation of sobel filters
+- Fixed remove limit on magnitude in sobel magnitude calculation
 
 ### Removed
 
