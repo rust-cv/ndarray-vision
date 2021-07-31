@@ -34,25 +34,6 @@ pub trait PixelBound {
     fn discrete_levels() -> Option<usize>;
 }
 
-pub struct Unbounded<T>(pub T);
-
-impl<T> PixelBound for Unbounded<T>
-where
-    T: Real,
-{
-    fn min_pixel() -> Self {
-        Self(T::min_value())
-    }
-
-    fn max_pixel() -> Self {
-        Self(T::max_value())
-    }
-
-    fn discrete_levels() -> Option<usize> {
-        None
-    }
-}
-
 impl PixelBound for f64 {
     fn min_pixel() -> Self {
         0.0f64
