@@ -61,12 +61,9 @@ where
         for r in 0..res_shape.0 {
             for c in 0..res_shape.1 {
                 for channel in 0..res_shape.2 {
-                    let mut temp = (h_deriv[[r, c, channel]].powi(2)
+                    let temp = (h_deriv[[r, c, channel]].powi(2)
                         + v_deriv[[r, c, channel]].powi(2))
                     .sqrt();
-                    if temp > T::one() {
-                        temp = T::one();
-                    }
                     unsafe {
                         *result.uget_mut([r, c, channel]) = MaybeUninit::new(temp);
                     }
@@ -87,7 +84,7 @@ where
         Zip::from(&mut rotation)
             .and(&h_deriv)
             .and(&v_deriv)
-            .for_each(|r, &h, &v| *r = MaybeUninit::new(v.atan2(h)));
+            .for_each(|r, &h, &v| *r = MaybeUninit::new(h.atan2(v)));
 
         let rotation = unsafe { rotation.assume_init() };
 
@@ -123,15 +120,12 @@ mod tests {
     #[test]
     fn simple() {
         let mut image: Image<f64, Gray> = ImageBase::new(11, 11);
-        image.data.slice_mut(s![4..6, 4..6, ..]).fill(1.0);
-        image.data.slice_mut(s![3..7, 5, ..]).fill(1.0);
-        image.data.slice_mut(s![5, 3..7, ..]).fill(1.0);
+        image.data.slice_mut(s![4..7, 4..7, ..]).fill(1.0);
+        image.data.slice_mut(s![3..8, 5, ..]).fill(1.0);
+        image.data.slice_mut(s![5, 3..8, ..]).fill(1.0);
 
-        let sobel = image.clone().full_sobel().unwrap();
+        let sobel = image.full_sobel().unwrap();
 
-        println!("Source: {:?}", image);
-        println!("mag: {:?}", sobel.0);
-        println!("rot: {:?}", sobel.1);
         // Did a calculation of sobel_mag[1..9, 1..9, ..] in a spreadsheet
         #[rustfmt::skip]
         let mag = vec![0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -145,10 +139,26 @@ mod tests {
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
         ];
 
-        println!("len: {}", mag.len());
-
         let mag = Array::from_shape_vec((9, 9), mag).unwrap();
 
-        abs_diff_eq!(sobel.0.data.slice(s![1..10, 1..10, 0]), mag);
+        assert_abs_diff_eq!(sobel.0.data.slice(s![1..10, 1..10, 0]), mag, epsilon = 1e-5);
+
+        let only_mag = image.apply_sobel().unwrap();
+        assert_abs_diff_eq!(sobel.0.data, only_mag.data);
+
+        // Did a calculation of sobel_rot[1..9, 1..9, ..] in a spreadsheet
+        #[rustfmt::skip]
+        let rot = vec![0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,-2.35619449019234,3.14159265358979,2.35619449019234,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,-2.35619449019234,-2.35619449019234,3.14159265358979,2.35619449019234,2.35619449019234,0.00000000000000,0.00000000000000,
+                       0.00000000000000,-2.35619449019234,-2.35619449019234,-2.35619449019234,3.14159265358979,2.35619449019234,2.35619449019234,2.35619449019234,0.00000000000000,
+                       0.00000000000000,-1.57079632679490,-1.57079632679490,-1.57079632679490,0.00000000000000,1.57079632679490,1.57079632679490,1.57079632679490,0.00000000000000,
+                       0.00000000000000,-0.78539816339745,-0.78539816339745,-0.78539816339745,0.00000000000000,0.78539816339745,0.78539816339745,0.78539816339745,0.00000000000000,
+                       0.00000000000000,0.00000000000000,-0.78539816339745,-0.78539816339745,0.00000000000000,0.78539816339745,0.78539816339745,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,-0.78539816339745,0.00000000000000,0.78539816339745,0.00000000000000,0.00000000000000,0.00000000000000,
+                       0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000,0.00000000000000];
+        let rot = Array::from_shape_vec((9, 9), rot).unwrap();
+
+        assert_abs_diff_eq!(sobel.1.data.slice(s![1..10, 1..10, 0]), rot, epsilon = 1e-5);
     }
 }
