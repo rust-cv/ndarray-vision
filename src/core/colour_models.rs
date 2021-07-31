@@ -867,7 +867,7 @@ impl ColourModel for RGBA {
 mod tests {
     use super::*;
     use ndarray::s;
-    use ndarray_rand::{RandomExt};
+    use ndarray_rand::RandomExt;
     use ndarray_stats::QuantileExt;
     use rand::distributions::Uniform;
 
