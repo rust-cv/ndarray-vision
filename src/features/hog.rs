@@ -13,7 +13,7 @@ pub struct Gradient {
 }
 
 #[derive(Default)]
-pub struct HistogramOfGradientsBuilder {
+pub struct HogBuilder {
     /// Number of orientations in the historgram
     orientations: Option<usize>,
     /// Number of pixels in a cell
@@ -23,14 +23,14 @@ pub struct HistogramOfGradientsBuilder {
 }
 
 /// Extract the HoG descriptor from an image and optionally visualise it
-pub struct HistogramOfGradientsExtractor {
+pub struct HogExtractor {
     orientations: usize,
     cell_width: usize,
     block_width: usize,
 }
 
-impl HistogramOfGradientsBuilder {
-    pub fn build(self) -> HistogramOfGradientsExtractor {
+impl HogBuilder {
+    pub fn build(self) -> HogExtractor {
         let orientations = match self.orientations {
             Some(o) => o,
             None => 9,
@@ -44,7 +44,7 @@ impl HistogramOfGradientsBuilder {
             None => 2,
         };
 
-        HistogramOfGradientsExtractor {
+        HogExtractor {
             orientations,
             cell_width,
             block_width,
@@ -100,9 +100,9 @@ fn draw_line(
     }
 }
 
-impl HistogramOfGradientsExtractor {
+impl HogExtractor {
     /// Start creating a hog extractor
-    pub fn create() -> HistogramOfGradientsBuilder {
+    pub fn create() -> HogBuilder {
         Default::default()
     }
 
