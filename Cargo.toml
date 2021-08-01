@@ -30,7 +30,7 @@ ndarray = { version = "0.15", features = ["approx"] }
 ndarray-rand = "0.14.0"
 rand = "0.8"
 assert_approx_eq = "1.1.0"
-approx = "0.4"
+approx = "0.5"
 noisy_float = "0.2"
 png = "0.16"
 ndarray-linalg = { version = "0.14", features = ["intel-mkl"] }
