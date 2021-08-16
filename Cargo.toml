@@ -32,5 +32,5 @@ rand = "0.8"
 assert_approx_eq = "1.1.0"
 approx = "0.4"
 noisy_float = "0.2"
-png = "0.16"
+png = "0.17"
 ndarray-linalg = { version = "0.14", features = ["intel-mkl"] }
