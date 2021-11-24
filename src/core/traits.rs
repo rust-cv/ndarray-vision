@@ -1,4 +1,3 @@
-use num_traits::real::Real;
 /// When working with pixel data types may have odd bitdepths or not use the
 /// full range of the value. We can't assume every image with `u8` ranges from
 /// [0..255]. Additionally, floating point representations of pixels normally
