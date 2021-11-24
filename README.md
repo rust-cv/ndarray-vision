@@ -24,5 +24,5 @@ See the examples and tests for basic usage.
 # Performance 
 
 Not a lot of work has been put towards performance yet but a rudimentary
-benchmarking project exists [here](https://github.com/xd009642/ndarray-vision-benchmarking)
+benchmarking project exists [here](https://github.com/rust-cv/ndarray-vision-benchmarking)
 for comparative benchmarks against other image processing libraries in rust.

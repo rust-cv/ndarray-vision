@@ -220,15 +220,16 @@ where
     /// Build a fixed size kernel with the given parameters
     fn build_with_params(p: Self::Params) -> Result<Array3<T>, Error> {
         let two = T::from_i8(2).ok_or_else(|| Error::NumericError)?;
-
-        let vert_sobel = arr2(&[
-            [-T::one(), T::zero(), T::one()],
-            [-two, T::zero(), two],
-            [-T::one(), T::zero(), T::one()],
+        // Gets the gradient along the horizontal axis
+        #[rustfmt::skip]
+        let horz_sobel = arr2(&[
+            [T::one(),  T::zero(), -T::one()],
+            [two,       T::zero(), -two],
+            [T::one(),  T::zero(), -T::one()],
         ]);
         let sobel = match p {
-            Orientation::Vertical => vert_sobel,
-            Orientation::Horizontal => vert_sobel.t().to_owned(),
+            Orientation::Vertical => horz_sobel.t().to_owned(),
+            Orientation::Horizontal => horz_sobel,
         };
         Ok(sobel.insert_axis(Axis(2)))
     }
@@ -253,25 +254,25 @@ mod tests {
     fn test_sobel_filter() {
         // As sobel works with integer numbers I'm going to ignore the perils of
         // floating point comparisons... for now.
-        let filter: Array3<f32> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
-
-        assert_eq!(
-            filter,
-            arr3(&[
-                [[-1.0f32], [0.0f32], [1.0f32]],
-                [[-2.0f32], [0.0f32], [2.0f32]],
-                [[-1.0f32], [0.0f32], [1.0f32]]
-            ])
-        );
-
         let filter: Array3<f32> = SobelFilter::build_with_params(Orientation::Horizontal).unwrap();
 
         assert_eq!(
             filter,
             arr3(&[
-                [[-1.0f32], [-2.0f32], [-1.0f32]],
+                [[1.0f32], [0.0f32], [-1.0f32]],
+                [[2.0f32], [0.0f32], [-2.0f32]],
+                [[1.0f32], [0.0f32], [-1.0f32]]
+            ])
+        );
+
+        let filter: Array3<f32> = SobelFilter::build_with_params(Orientation::Vertical).unwrap();
+
+        assert_eq!(
+            filter,
+            arr3(&[
+                [[1.0f32], [2.0f32], [1.0f32]],
                 [[0.0f32], [0.0f32], [0.0f32]],
-                [[1.0f32], [2.0f32], [1.0f32]]
+                [[-1.0f32], [-2.0f32], [-1.0f32]]
             ])
         )
     }
