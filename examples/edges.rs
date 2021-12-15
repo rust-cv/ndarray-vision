@@ -22,11 +22,11 @@ fn main() {
         root.pop();
         root.pop();
         root.pop();
-        let mut lena = PathBuf::from(&root);
-        lena.push("images/lena.ppm");
+        let mut cameraman = PathBuf::from(&root);
+        cameraman.push("images/cameraman.ppm");
 
         let decoder = PpmDecoder::default();
-        let image: Image<u8, _> = decoder.decode_file(lena).expect("Couldn't open Lena.ppm");
+        let image: Image<u8, _> = decoder.decode_file(cameraman).expect("Couldn't open cameraman.ppm");
 
         let image: Image<f64, _> = image.into_type();
         let image: Image<_, Gray> = image.into();
@@ -36,15 +36,15 @@ fn main() {
         let image = image.apply_sobel().expect("Error in sobel");
         // back to RGB
         let image: Image<_, RGB> = image.into();
-        let mut lena = PathBuf::from(&root);
-        lena.push("images/lena-sobel.ppm");
+        let mut cameraman = PathBuf::from(&root);
+        cameraman.push("images/cameraman-sobel.ppm");
 
         let ppm = PpmEncoder::new_plaintext_encoder();
-        ppm.encode_file(&image, lena).expect("Unable to encode ppm");
+        ppm.encode_file(&image, cameraman).expect("Unable to encode ppm");
 
-        let mut lena = PathBuf::from(&root);
-        lena.push("images/lena-canny.ppm");
-        ppm.encode_file(&canny.into(), lena)
+        let mut cameraman = PathBuf::from(&root);
+        cameraman.push("images/cameraman-canny.ppm");
+        ppm.encode_file(&canny.into(), cameraman)
             .expect("Unable to encode ppm");
     }
 }
