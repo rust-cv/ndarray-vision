@@ -34,3 +34,6 @@ approx = "0.4"
 noisy_float = "0.2"
 png = "0.16"
 ndarray-linalg = { version = "0.14", features = ["intel-mkl"] }
+# it is a dependency of intel-mkl-tool, we pin it to temporary solve
+# https://github.com/rust-math/intel-mkl-src/issues/68
+anyhow = "<1.0.49"
