@@ -12,7 +12,9 @@ fn main() {
     println!("{:?}", cameraman);
 
     let decoder = PpmDecoder::default();
-    let image: Image<u8, _> = decoder.decode_file(cameraman).expect("Couldn't open cameraman.ppm");
+    let image: Image<u8, _> = decoder
+        .decode_file(cameraman)
+        .expect("Couldn't open cameraman.ppm");
 
     let boxkern: Array3<f64> =
         BoxLinearFilter::build(Ix3(3, 3, 3)).expect("Was unable to construct filter");
@@ -28,5 +30,6 @@ fn main() {
     cameraman.push("images/cameramanblur.ppm");
 
     let ppm = PpmEncoder::new_plaintext_encoder();
-    ppm.encode_file(&image, cameraman).expect("Unable to encode ppm");
+    ppm.encode_file(&image, cameraman)
+        .expect("Unable to encode ppm");
 }

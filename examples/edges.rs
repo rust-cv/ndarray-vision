@@ -26,7 +26,9 @@ fn main() {
         cameraman.push("images/cameraman.ppm");
 
         let decoder = PpmDecoder::default();
-        let image: Image<u8, _> = decoder.decode_file(cameraman).expect("Couldn't open cameraman.ppm");
+        let image: Image<u8, _> = decoder
+            .decode_file(cameraman)
+            .expect("Couldn't open cameraman.ppm");
 
         let image: Image<f64, _> = image.into_type();
         let image: Image<_, Gray> = image.into();
@@ -40,7 +42,8 @@ fn main() {
         cameraman.push("images/cameraman-sobel.ppm");
 
         let ppm = PpmEncoder::new_plaintext_encoder();
-        ppm.encode_file(&image, cameraman).expect("Unable to encode ppm");
+        ppm.encode_file(&image, cameraman)
+            .expect("Unable to encode ppm");
 
         let mut cameraman = PathBuf::from(&root);
         cameraman.push("images/cameraman-canny.ppm");

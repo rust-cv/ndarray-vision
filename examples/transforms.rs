@@ -19,7 +19,9 @@ fn get_cameraman() -> Option<Image<u8, RGB>> {
         cameraman.push("images/cameraman.ppm");
 
         let decoder = PpmDecoder::default();
-        let image: Image<u8, _> = decoder.decode_file(cameraman).expect("Couldn't open cameraman.ppm");
+        let image: Image<u8, _> = decoder
+            .decode_file(cameraman)
+            .expect("Couldn't open cameraman.ppm");
         Some(image)
     } else {
         None
