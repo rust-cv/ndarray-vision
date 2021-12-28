@@ -11,7 +11,7 @@ categories = ["science", "science::robotics", "multimedia", "multimedia::images"
 edition = "2018"
 
 [features]
-default = ["enhancement", "format", "morphology", "processing", "transform"]
+default = ["enhancement", "format", "morphology", "processing", "transform" , "ndarray-linalg/intel-mkl"]
 enhancement = []
 format = []
 morphology = []
