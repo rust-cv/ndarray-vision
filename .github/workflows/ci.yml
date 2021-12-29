@@ -27,7 +27,6 @@ jobs:
       - name: build
         run: |
           cargo check --no-default-features
-          cargo check --all-features
       - name: test
         run: |
           cargo test 
