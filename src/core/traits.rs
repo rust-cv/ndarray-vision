@@ -26,11 +26,10 @@ pub trait PixelBound {
     fn min_pixel() -> Self;
     /// The maximum value a pixel can take
     fn max_pixel() -> Self;
-
-    /// Returns the number of discrete levels. This is an option because it's
-    /// deemed meaningless for types like floats which suffer from rounding
-    /// issues
-    fn discrete_levels() -> Option<usize>;
+    /// If this is a non-floating point value return true
+    fn is_integral() -> bool {
+        true
+    }
 }
 
 impl PixelBound for f64 {
@@ -42,8 +41,8 @@ impl PixelBound for f64 {
         1.0f64
     }
 
-    fn discrete_levels() -> Option<usize> {
-        None
+    fn is_integral() -> bool {
+        false
     }
 }
 
@@ -56,8 +55,8 @@ impl PixelBound for f32 {
         1.0f32
     }
 
-    fn discrete_levels() -> Option<usize> {
-        None
+    fn is_integral() -> bool {
+        false
     }
 }
 
@@ -69,10 +68,6 @@ impl PixelBound for u8 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
-    }
 }
 
 impl PixelBound for u16 {
@@ -82,10 +77,6 @@ impl PixelBound for u16 {
 
     fn max_pixel() -> Self {
         Self::max_value()
-    }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
     }
 }
 
@@ -97,10 +88,6 @@ impl PixelBound for u32 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
-    }
 }
 
 impl PixelBound for u64 {
@@ -110,10 +97,6 @@ impl PixelBound for u64 {
 
     fn max_pixel() -> Self {
         Self::max_value()
-    }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
     }
 }
 
@@ -125,10 +108,6 @@ impl PixelBound for u128 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
-    }
 }
 
 impl PixelBound for i8 {
@@ -138,10 +117,6 @@ impl PixelBound for i8 {
 
     fn max_pixel() -> Self {
         Self::max_value()
-    }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
     }
 }
 
@@ -153,10 +128,6 @@ impl PixelBound for i16 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
-    }
 }
 
 impl PixelBound for i32 {
@@ -166,10 +137,6 @@ impl PixelBound for i32 {
 
     fn max_pixel() -> Self {
         Self::max_value()
-    }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
     }
 }
 
@@ -181,10 +148,6 @@ impl PixelBound for i64 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
-
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
-    }
 }
 
 impl PixelBound for i128 {
@@ -195,8 +158,41 @@ impl PixelBound for i128 {
     fn max_pixel() -> Self {
         Self::max_value()
     }
+}
 
-    fn discrete_levels() -> Option<usize> {
-        Some(Self::max_value() as usize + 1)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn integral_correct() {
+        assert!(!f64::is_integral());
+        assert!(!f32::is_integral());
+        assert!(u128::is_integral());
+        assert!(u64::is_integral());
+        assert!(u32::is_integral());
+        assert!(u16::is_integral());
+        assert!(u8::is_integral());
+        assert!(i128::is_integral());
+        assert!(i64::is_integral());
+        assert!(i32::is_integral());
+        assert!(i16::is_integral());
+        assert!(i8::is_integral());
+    }
+
+    #[test]
+    fn max_more_than_min() {
+        assert!(f64::max_pixel() > f64::min_pixel());
+        assert!(f32::max_pixel() > f32::min_pixel());
+        assert!(u8::max_pixel() > u8::min_pixel());
+        assert!(u16::max_pixel() > u16::min_pixel());
+        assert!(u32::max_pixel() > u32::min_pixel());
+        assert!(u64::max_pixel() > u64::min_pixel());
+        assert!(u128::max_pixel() > u128::min_pixel());
+        assert!(i8::max_pixel() > i8::min_pixel());
+        assert!(i16::max_pixel() > i16::min_pixel());
+        assert!(i32::max_pixel() > i32::min_pixel());
+        assert!(i64::max_pixel() > i64::min_pixel());
+        assert!(i128::max_pixel() > i128::min_pixel());
     }
 }
