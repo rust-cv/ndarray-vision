@@ -1,14 +1,13 @@
 # Change Log
 
-## [0.3.0] 2022-02-17
-### Added
+## [0.4.0] 2022-02-17
+### Changed
+- Remove discrete levels - this overflowed with the 64 and 128 bit types
 
+## [0.3.0] 2021-11-24
 ### Changed
 - Fixed orientation of sobel filters
 - Fixed remove limit on magnitude in sobel magnitude calculation
-- Remove discrete levels - this overflowed with the 64 and 128 bit types
-
-### Removed
 
 ## [0.2.0] 2020-06-06
 ### Added
@@ -28,15 +27,9 @@
 * No pad behaviour now keeps pixels near the edges the same as source value instead of making them black
 * Various performance enhancements in convolution and canny functions
 
-### Removed 
-
 ## [0.1.1] - 2019-07-31
-### Added
-
 ### Changed
 * Applied zero padding by default in convolutions
-
-### Removed 
 
 ## [0.1.0] - 2019-03-24
 ### Added
