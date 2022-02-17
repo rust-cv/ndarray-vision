@@ -65,7 +65,7 @@ where
                     None => 0,
                 };
                 let mut f_res = ((cdf[index] - min) / denominator) * scale;
-                if T::discrete_levels().is_some() {
+                if T::is_integral() {
                     f_res = f_res.round();
                 }
                 T::from_f32(f_res).unwrap_or_else(T::zero) + T::min_pixel()

@@ -1,11 +1,12 @@
 # Change Log
 
-## [Unreleased]
+## [0.3.0] 2022-02-17
 ### Added
 
 ### Changed
 - Fixed orientation of sobel filters
 - Fixed remove limit on magnitude in sobel magnitude calculation
+- Remove discrete levels - this overflowed with the 64 and 128 bit types
 
 ### Removed
 
