@@ -27,6 +27,7 @@
 
 /// The core of `ndarray-vision` contains the `Image` type and colour models
 pub mod core;
+mod core_serde;
 /// Image enhancement intrinsics and algorithms
 #[cfg(feature = "enhancement")]
 pub mod enhancement;
