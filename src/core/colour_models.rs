@@ -60,6 +60,8 @@ pub struct Generic5;
 /// ColourModel trait, this trait reports base parameters for different colour
 /// models
 pub trait ColourModel {
+    const NAME: &'static str;
+
     /// Number of colour channels for a type.
     fn channels() -> usize {
         3
@@ -816,48 +818,89 @@ where
     }
 }
 
-impl ColourModel for RGB {}
-impl ColourModel for HSV {}
-impl ColourModel for HSI {}
-impl ColourModel for HSL {}
-impl ColourModel for YCrCb {}
-impl ColourModel for CIEXYZ {}
-impl ColourModel for CIELAB {}
-impl ColourModel for CIELUV {}
+impl ColourModel for RGB {
+    const NAME: &'static str = "RGB";
+}
+
+impl ColourModel for HSV {
+    const NAME: &'static str = "HSV";
+}
+
+impl ColourModel for HSI {
+    const NAME: &'static str = "HSI";
+}
+
+impl ColourModel for HSL {
+    const NAME: &'static str = "HSL";
+}
+
+impl ColourModel for YCrCb {
+    const NAME: &'static str = "YCrCb";
+}
+
+impl ColourModel for CIEXYZ {
+    const NAME: &'static str = "CIEXYZ";
+}
+
+impl ColourModel for CIELAB {
+    const NAME: &'static str = "CIELAB";
+}
+
+impl ColourModel for CIELUV {
+    const NAME: &'static str = "CIELUV";
+}
 
 impl ColourModel for Gray {
+    const NAME: &'static str = "Gray";
+
     fn channels() -> usize {
         1
     }
 }
 
 impl ColourModel for Generic1 {
+    const NAME: &'static str = "Generic1";
+
     fn channels() -> usize {
         1
     }
 }
+
 impl ColourModel for Generic2 {
+    const NAME: &'static str = "Generic2";
+
     fn channels() -> usize {
         2
     }
 }
+
 impl ColourModel for Generic3 {
+    const NAME: &'static str = "Generic3";
+
     fn channels() -> usize {
         3
     }
 }
+
 impl ColourModel for Generic4 {
+    const NAME: &'static str = "Generic4";
+
     fn channels() -> usize {
         4
     }
 }
+
 impl ColourModel for Generic5 {
+    const NAME: &'static str = "Generic5";
+
     fn channels() -> usize {
         5
     }
 }
 
 impl ColourModel for RGBA {
+    const NAME: &'static str = "RGBA";
+
     fn channels() -> usize {
         4
     }
