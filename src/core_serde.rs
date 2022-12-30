@@ -114,30 +114,75 @@ where
         formatter.write_str("ndarray-vision Image representation")
     }
 
-    fn visit_seq<V>(self, mut _visitor: V) -> Result<Self::Value, V::Error>
+    fn visit_seq<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
     where
         V: de::SeqAccess<'de>,
     {
-        unimplemented!()
+        let data = visitor
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+        let model = visitor
+            .next_element()?
+            .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+        Ok(ImageBase { data, model })
     }
 
-    fn visit_map<V>(self, mut _visitor: V) -> Result<Self::Value, V::Error>
+    fn visit_map<V>(self, mut visitor: V) -> Result<Self::Value, V::Error>
     where
         V: de::MapAccess<'de>,
     {
-        unimplemented!()
+        let mut data = None;
+        let mut model: Option<&str> = None;
+        while let Some(key) = visitor.next_key()? {
+            match key {
+                ImageBaseField::Data => {
+                    if data.is_some() {
+                        return Err(de::Error::duplicate_field("data"));
+                    }
+                    data = Some(visitor.next_value()?);
+                }
+                ImageBaseField::Model => {
+                    if model.is_some() {
+                        return Err(de::Error::duplicate_field("model"));
+                    }
+                    model = Some(visitor.next_value()?);
+                }
+            }
+        }
+        let data = data.ok_or_else(|| de::Error::missing_field("data"))?;
+        let model = model.ok_or_else(|| de::Error::missing_field("model"))?;
+        if model.to_lowercase() == C::NAME.to_lowercase() {
+            Ok(ImageBase {
+                data,
+                model: PhantomData,
+            })
+        } else {
+            Err(de::Error::invalid_value(
+                de::Unexpected::Str(model),
+                &C::NAME,
+            ))
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
+
     use crate::core::{Image, RGB};
 
     #[test]
     fn serialize_image_base() {
         const EXPECTED: &str = r#"{"data":{"v":1,"dim":[2,3,3],"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"model":"RGB"}"#;
         let i = Image::<u8, RGB>::new(2, 3);
-        let actual = serde_json::to_string(&i).expect("Serialized RGB image");
+        let actual = serde_json::to_string(&i).expect("Serialized image");
         assert_eq!(actual, EXPECTED);
+    }
+
+    #[test]
+    fn deserialize_image_base() {
+        const EXPECTED: &str = r#"{"data":{"v":1,"dim":[2,3,3],"data":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"model":"RGB"}"#;
+        let actual: Image<u8, RGB> = serde_json::from_str(EXPECTED).expect("Deserialized image");
+        assert_eq!(actual.model, PhantomData);
     }
 }
