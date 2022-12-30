@@ -1,7 +1,10 @@
 use crate::core::{ColourModel, ImageBase};
-use ndarray::Data;
+use ndarray::{Data, DataOwned};
+use serde::de;
 use serde::ser::SerializeStruct;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
+use std::marker::PhantomData;
 
 impl<A, T, C> Serialize for ImageBase<T, C>
 where
@@ -17,6 +20,112 @@ where
         state.serialize_field("data", &self.data)?;
         state.serialize_field("model", C::NAME)?;
         state.end()
+    }
+}
+
+struct ImageBaseVisitor<T, C> {
+    _marker_a: PhantomData<T>,
+    _marker_b: PhantomData<C>,
+}
+
+enum ImageBaseField {
+    Data,
+    Model,
+}
+
+impl<T, C> ImageBaseVisitor<T, C> {
+    pub fn new() -> Self {
+        ImageBaseVisitor {
+            _marker_a: PhantomData,
+            _marker_b: PhantomData,
+        }
+    }
+}
+
+static IMAGE_BASE_FIELDS: &[&str] = &["data", "model"];
+
+impl<'de, A, T, C> Deserialize<'de> for ImageBase<T, C>
+where
+    A: Deserialize<'de>,
+    T: DataOwned<Elem = A>,
+    C: ColourModel,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_struct("ImageBase", IMAGE_BASE_FIELDS, ImageBaseVisitor::new())
+    }
+}
+
+impl<'de> Deserialize<'de> for ImageBaseField {
+    fn deserialize<D>(deserializer: D) -> Result<ImageBaseField, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ImageBaseFieldVisitor;
+
+        impl<'de> de::Visitor<'de> for ImageBaseFieldVisitor {
+            type Value = ImageBaseField;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str(r#""data" or "model""#)
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<ImageBaseField, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    "data" => Ok(ImageBaseField::Data),
+                    "model" => Ok(ImageBaseField::Model),
+                    other => Err(de::Error::unknown_field(other, IMAGE_BASE_FIELDS)),
+                }
+            }
+
+            fn visit_bytes<E>(self, value: &[u8]) -> Result<ImageBaseField, E>
+            where
+                E: de::Error,
+            {
+                match value {
+                    b"data" => Ok(ImageBaseField::Data),
+                    b"model" => Ok(ImageBaseField::Model),
+                    other => Err(de::Error::unknown_field(
+                        &format!("{:?}", other),
+                        IMAGE_BASE_FIELDS,
+                    )),
+                }
+            }
+        }
+
+        deserializer.deserialize_identifier(ImageBaseFieldVisitor)
+    }
+}
+
+impl<'de, A, T, C> de::Visitor<'de> for ImageBaseVisitor<T, C>
+where
+    A: Deserialize<'de>,
+    T: DataOwned<Elem = A>,
+    C: ColourModel,
+{
+    type Value = ImageBase<T, C>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("ndarray-vision Image representation")
+    }
+
+    fn visit_seq<V>(self, mut _visitor: V) -> Result<Self::Value, V::Error>
+    where
+        V: de::SeqAccess<'de>,
+    {
+        unimplemented!()
+    }
+
+    fn visit_map<V>(self, mut _visitor: V) -> Result<Self::Value, V::Error>
+    where
+        V: de::MapAccess<'de>,
+    {
+        unimplemented!()
     }
 }
 
