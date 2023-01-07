@@ -40,6 +40,26 @@ pub trait ThresholdMeanExt<T> {
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
+/// Runs the Manual thresholding algorithm on a type `T`.
+pub trait ThresholdManualExt<T> {
+    /// The Manual threshold outputs a binary image.
+    type Output;
+
+    /// Run the Manual threshold algorithm with the given limits.
+    ///
+    /// The Manual simply segments an image into background and foreground
+    /// elements where any pixel value within the limits are considered
+    /// foreground elements and any pixels with a value outside the limits are
+    /// considered part of the background.
+    ///
+    /// # Errors
+    ///
+    /// The current implementation assumes a single channel image, i.e.,
+    /// greyscale image. Thus, if more than one channel is present, then
+    /// `ChannelDimensionMismatch` error occurs.
+    fn threshold_manual(&self, lower: f64, upper: f64) -> Result<Self::Output, Error>;
+}
+
 impl<T, U, C> ThresholdOtsuExt<T> for ImageBase<U, C>
 where
     U: Data<Elem = T>,
