@@ -57,6 +57,9 @@ pub trait ThresholdManualExt<T> {
     /// The current implementation assumes a single channel image, i.e.,
     /// greyscale image. Thus, if more than one channel is present, then
     /// `ChannelDimensionMismatch` error occurs.
+    ///
+    /// An `InvalidParameter` error occurs if the `lower` limit is greater than
+    /// the `upper` limit, too.
     fn threshold_manual(&self, lower: f64, upper: f64) -> Result<Self::Output, Error>;
 }
 
@@ -196,6 +199,42 @@ where
     T: Copy + Clone + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
     Ok(array.sum().to_f64().unwrap() / array.len() as f64)
+}
+
+impl<T, U, C> ThresholdManualExt<T> for ImageBase<U, C>
+where
+    U: Data<Elem = T>,
+    Image<U, C>: Clone,
+    T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
+    C: ColourModel,
+{
+    type Output = Image<bool, C>;
+
+    fn threshold_manual(&self, lower: f64, upper: f64) -> Result<Self::Output, Error> {
+        let data = self.data.threshold_manual(lower, upper)?;
+        Ok(Self::Output {
+            data,
+            model: PhantomData,
+        })
+    }
+}
+
+impl<T, U> ThresholdManualExt<T> for ArrayBase<U, Ix3>
+where
+    U: Data<Elem = T>,
+    T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive,
+{
+    type Output = Array3<bool>;
+
+    fn threshold_manual(&self, lower: f64, upper: f64) -> Result<Self::Output, Error> {
+        if self.shape()[2] > 1 {
+            Err(Error::ChannelDimensionMismatch)
+        } else if lower > upper {
+            Err(Error::InvalidParameter)
+        } else {
+            Ok(self.mapv(|x| x.to_f64().unwrap() >= lower && x.to_f64().unwrap() <= upper))
+        }
+    }
 }
 
 fn apply_threshold<T, U>(data: &ArrayBase<U, Ix3>, threshold: f64) -> Array3<bool>
