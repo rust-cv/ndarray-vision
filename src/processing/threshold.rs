@@ -16,7 +16,7 @@ use assert_approx_eq::assert_approx_eq;
 #[cfg(test)]
 use noisy_float::types::n64;
 
-/// Runs the Otsu Thresholding algorithm on a type `T`.
+/// Runs the Otsu thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
     /// The Otsu thresholding output is a binary image.
     type Output;
@@ -34,7 +34,7 @@ pub trait ThresholdOtsuExt<T> {
     fn threshold_otsu(&self) -> Result<Self::Output, Error>;
 }
 
-/// Runs the Mean Thresholding algorithm on a type `T`.
+/// Runs the Mean thresholding algorithm on a type `T`.
 pub trait ThresholdMeanExt<T> {
     /// The Mean thresholding output is a binary image.
     type Output;
