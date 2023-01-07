@@ -50,7 +50,8 @@ pub trait ThresholdManualExt<T> {
     /// The Manual simply segments an image into background and foreground
     /// elements where any pixel value within the limits are considered
     /// foreground elements and any pixels with a value outside the limits are
-    /// considered part of the background.
+    /// considered part of the background. The upper and lower limits are
+    /// inclusive.
     ///
     /// # Errors
     ///
