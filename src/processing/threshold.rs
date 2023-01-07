@@ -16,27 +16,38 @@ use assert_approx_eq::assert_approx_eq;
 #[cfg(test)]
 use noisy_float::types::n64;
 
-/// Runs the Otsu Thresholding algorithm on a type T
+/// Runs the Otsu thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
-    /// Output type, this is different as Otsu outputs a binary image
+    /// The Otsu thresholding output is a binary image.
     type Output;
 
-    /// Run the Otsu threshold detection algorithm with the
-    /// given parameters. Due to Otsu being specified as working
-    /// on greyscale images all current implementations
-    /// assume a single channel image returning an error otherwise.
+    /// Run the Otsu threshold algorithm.
+    ///
+    /// Due to Otsu threshold algorithm specifying a greyscale image, all
+    /// current implementations assume a single channel image; otherwise, an
+    /// error is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ChannelDimensionMismatch` error if more than one channel
+    /// exists.
     fn threshold_otsu(&self) -> Result<Self::Output, Error>;
 }
 
-/// Runs the Mean Thresholding algorithm on a type T
+/// Runs the Mean thresholding algorithm on a type `T`.
 pub trait ThresholdMeanExt<T> {
-    /// Output type, this is different as Otsu outputs a binary image
+    /// The Mean thresholding output is a binary image.
     type Output;
 
-    /// Run the Otsu threshold detection algorithm with the
-    /// given parameters. Due to Otsu being specified as working
-    /// on greyscale images all current implementations
-    /// assume a single channel image returning an error otherwise.
+    /// Run the Mean threshold algorithm.
+    ///
+    /// This assumes the image is a single channel image, i.e., a greyscale
+    /// image; otherwise, an error is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ChannelDimensionMismatch` error if more than one channel
+    /// exists.
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
@@ -76,13 +87,15 @@ where
     }
 }
 
+/// Calculates Otsu's threshold.
 ///
-/// Calculates Otsu's threshold
-/// Works per channel, but currently
-/// assumes grayscale (see the error above if number of channels is > 1
-/// i.e. single channel; otherwise we need to output all 3 threshold values).
-/// Todo: Add optional nbins
+/// Works per channel, but currently assumes greyscale.
 ///
+/// See the Errors section for the `ThresholdOtsuExt` trait if the number of
+/// channels is greater than one (1), i.e., single channel; otherwise, we would
+/// need to output all three threshold values.
+///
+/// TODO: Add optional nbins
 fn calculate_threshold_otsu<T, U>(mat: &ArrayBase<U, Ix3>) -> Result<f64, Error>
 where
     U: Data<Elem = T>,
