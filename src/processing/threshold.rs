@@ -68,7 +68,7 @@ pub trait ThresholdManualExt<T> {
     ///
     /// The current implementation assumes a single channel image, i.e.,
     /// greyscale image. Thus, if more than one channel is present, then
-    /// `ChannelDimensionMismatch` error occurs.
+    /// a `ChannelDimensionMismatch` error occurs.
     ///
     /// An `InvalidParameter` error occurs if the `lower` limit is greater than
     /// the `upper` limit, too.
