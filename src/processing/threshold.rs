@@ -16,21 +16,27 @@ use assert_approx_eq::assert_approx_eq;
 #[cfg(test)]
 use noisy_float::types::n64;
 
-/// Runs the Otsu Thresholding algorithm on a type T
+/// Runs the Otsu Thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
-    /// Output type, this is different as Otsu outputs a binary image
+    /// The Otsu thresholding outputs a binary image.
     type Output;
 
-    /// Run the Otsu threshold detection algorithm with the
-    /// given parameters. Due to Otsu being specified as working
-    /// on greyscale images all current implementations
-    /// assume a single channel image returning an error otherwise.
+    /// Run the Otsu threshold algorithm.
+    ///
+    /// Due to Otsu threshold algorithm specifying a greyscale image, all current
+    /// implementations assume a single channel image; otherwise, an error is
+    /// returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ChannelDimensionMismatch` error if more than one channel exists.
     fn threshold_otsu(&self) -> Result<Self::Output, Error>;
 }
 
 /// Runs the Mean Thresholding algorithm on a type T
 pub trait ThresholdMeanExt<T> {
-    /// Output type, this is different as Otsu outputs a binary image
+    /// Output type, this is different as the Mean thresholding output is a
+    /// binary image
     type Output;
 
     /// Run the Otsu threshold detection algorithm with the
