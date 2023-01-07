@@ -18,31 +18,36 @@ use noisy_float::types::n64;
 
 /// Runs the Otsu Thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
-    /// The Otsu thresholding outputs a binary image.
+    /// The Otsu thresholding output is a binary image.
     type Output;
 
     /// Run the Otsu threshold algorithm.
     ///
-    /// Due to Otsu threshold algorithm specifying a greyscale image, all current
-    /// implementations assume a single channel image; otherwise, an error is
-    /// returned.
+    /// Due to Otsu threshold algorithm specifying a greyscale image, all
+    /// current implementations assume a single channel image; otherwise, an
+    /// error is returned.
     ///
     /// # Errors
     ///
-    /// Returns a `ChannelDimensionMismatch` error if more than one channel exists.
+    /// Returns a `ChannelDimensionMismatch` error if more than one channel
+    /// exists.
     fn threshold_otsu(&self) -> Result<Self::Output, Error>;
 }
 
-/// Runs the Mean Thresholding algorithm on a type T
+/// Runs the Mean Thresholding algorithm on a type `T`.
 pub trait ThresholdMeanExt<T> {
-    /// Output type, this is different as the Mean thresholding output is a
-    /// binary image
+    /// The Mean thresholding output is a binary image.
     type Output;
 
-    /// Run the Otsu threshold detection algorithm with the
-    /// given parameters. Due to Otsu being specified as working
-    /// on greyscale images all current implementations
-    /// assume a single channel image returning an error otherwise.
+    /// Run the Mean threshold algorithm.
+    ///
+    /// This assumes the image is a single channel image, i.e., a greyscale
+    /// image; otherwise, an error is returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ChannelDimensionMismatch` error if more than one channel
+    /// exists.
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
