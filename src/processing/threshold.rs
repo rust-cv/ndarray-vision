@@ -87,13 +87,15 @@ where
     }
 }
 
+/// Calculates Otsu's threshold.
 ///
-/// Calculates Otsu's threshold
-/// Works per channel, but currently
-/// assumes grayscale (see the error above if number of channels is > 1
-/// i.e. single channel; otherwise we need to output all 3 threshold values).
-/// Todo: Add optional nbins
+/// Works per channel, but currently assumes greyscale.
 ///
+/// See the Errors section for the `ThresholdOtsuExt` trait if the number of
+/// channels is greater than one (1), i.e., single channel; otherwise, we would
+/// need to output all three threshold values.
+///
+/// TODO: Add optional nbins
 fn calculate_threshold_otsu<T, U>(mat: &ArrayBase<U, Ix3>) -> Result<f64, Error>
 where
     U: Data<Elem = T>,
