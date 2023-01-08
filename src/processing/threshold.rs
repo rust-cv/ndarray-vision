@@ -10,12 +10,6 @@ use num_traits::cast::ToPrimitive;
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 
-// Development
-#[cfg(test)]
-use assert_approx_eq::assert_approx_eq;
-#[cfg(test)]
-use noisy_float::types::n64;
-
 /// Runs the Otsu thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
     /// The Otsu thresholding output is a binary image.
@@ -246,9 +240,21 @@ where
         } else if lower > upper {
             Err(Error::InvalidParameter)
         } else {
-            Ok(self.mapv(|x| x.to_f64().unwrap() >= lower && x.to_f64().unwrap() <= upper))
+            Ok(calculate_threshold_manual(self, lower, upper))
         }
     }
+}
+
+fn calculate_threshold_manual<T, U>(
+    data: &ArrayBase<U, Ix3>,
+    lower: f64,
+    upper: f64,
+) -> Array3<bool>
+where
+    U: Data<Elem = T>,
+    T: Copy + Clone + Num + NumAssignOps + ToPrimitive + FromPrimitive,
+{
+    data.mapv(|x| x.to_f64().unwrap() >= lower && x.to_f64().unwrap() <= upper)
 }
 
 fn apply_threshold<T, U>(data: &ArrayBase<U, Ix3>, threshold: f64) -> Array3<bool>
@@ -263,7 +269,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
     use ndarray::arr3;
+    use noisy_float::types::n64;
 
     #[test]
     fn threshold_apply_threshold() {
@@ -336,5 +344,23 @@ mod tests {
         let expected = 5.0;
 
         assert_approx_eq!(result, expected, 1e-16);
+    }
+
+    #[test]
+    fn threshold_calculate_threshold_manual_floats() {
+        let data = arr3(&[
+            [[0.2], [0.4], [0.0]],
+            [[0.7], [0.5], [0.8]],
+            [[0.1], [0.6], [0.0]],
+        ]);
+        let expected = arr3(&[
+            [[false], [true], [false]],
+            [[true], [true], [false]],
+            [[false], [true], [false]],
+        ]);
+
+        let result = calculate_threshold_manual(&data, 0.25, 0.75);
+
+        assert_eq!(result, expected);
     }
 }
