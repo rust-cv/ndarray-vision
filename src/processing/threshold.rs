@@ -10,12 +10,6 @@ use num_traits::cast::ToPrimitive;
 use num_traits::{Num, NumAssignOps};
 use std::marker::PhantomData;
 
-// Development
-#[cfg(test)]
-use assert_approx_eq::assert_approx_eq;
-#[cfg(test)]
-use noisy_float::types::n64;
-
 /// Runs the Otsu thresholding algorithm on a type `T`.
 pub trait ThresholdOtsuExt<T> {
     /// The Otsu thresholding output is a binary image.
@@ -51,6 +45,33 @@ pub trait ThresholdMeanExt<T> {
     fn threshold_mean(&self) -> Result<Self::Output, Error>;
 }
 
+/// Applies an upper and lower limit threshold on a type `T`.
+pub trait ThresholdApplyExt<T> {
+    /// The output is a binary image.
+    type Output;
+
+    /// Apply the threshold with the given limits.
+    ///
+    /// An image is segmented into background and foreground
+    /// elements, where any pixel value within the limits are considered
+    /// foreground elements and any pixels with a value outside the limits are
+    /// considered part of the background. The upper and lower limits are
+    /// inclusive.
+    ///
+    /// If only a lower limit threshold is to be applied, the `f64::INFINITY`
+    /// value can be used for the upper limit.
+    ///
+    /// # Errors
+    ///
+    /// The current implementation assumes a single channel image, i.e.,
+    /// greyscale image. Thus, if more than one channel is present, then
+    /// a `ChannelDimensionMismatch` error occurs.
+    ///
+    /// An `InvalidParameter` error occurs if the `lower` limit is greater than
+    /// the `upper` limit.
+    fn threshold_apply(&self, lower: f64, upper: f64) -> Result<Self::Output, Error>;
+}
+
 impl<T, U, C> ThresholdOtsuExt<T> for ImageBase<U, C>
 where
     U: Data<Elem = T>,
@@ -81,8 +102,7 @@ where
             Err(Error::ChannelDimensionMismatch)
         } else {
             let value = calculate_threshold_otsu(self)?;
-            let mask = apply_threshold(self, value);
-            Ok(mask)
+            self.threshold_apply(value, f64::INFINITY)
         }
     }
 }
@@ -177,8 +197,7 @@ where
             Err(Error::ChannelDimensionMismatch)
         } else {
             let value = calculate_threshold_mean(self)?;
-            let mask = apply_threshold(self, value);
-            Ok(mask)
+            self.threshold_apply(value, f64::INFINITY)
         }
     }
 }
@@ -191,19 +210,56 @@ where
     Ok(array.sum().to_f64().unwrap() / array.len() as f64)
 }
 
-fn apply_threshold<T, U>(data: &ArrayBase<U, Ix3>, threshold: f64) -> Array3<bool>
+impl<T, U, C> ThresholdApplyExt<T> for ImageBase<U, C>
+where
+    U: Data<Elem = T>,
+    Image<U, C>: Clone,
+    T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive + PixelBound,
+    C: ColourModel,
+{
+    type Output = Image<bool, C>;
+
+    fn threshold_apply(&self, lower: f64, upper: f64) -> Result<Self::Output, Error> {
+        let data = self.data.threshold_apply(lower, upper)?;
+        Ok(Self::Output {
+            data,
+            model: PhantomData,
+        })
+    }
+}
+
+impl<T, U> ThresholdApplyExt<T> for ArrayBase<U, Ix3>
+where
+    U: Data<Elem = T>,
+    T: Copy + Clone + Ord + Num + NumAssignOps + ToPrimitive + FromPrimitive,
+{
+    type Output = Array3<bool>;
+
+    fn threshold_apply(&self, lower: f64, upper: f64) -> Result<Self::Output, Error> {
+        if self.shape()[2] > 1 {
+            Err(Error::ChannelDimensionMismatch)
+        } else if lower > upper {
+            Err(Error::InvalidParameter)
+        } else {
+            Ok(apply_threshold(self, lower, upper))
+        }
+    }
+}
+
+fn apply_threshold<T, U>(data: &ArrayBase<U, Ix3>, lower: f64, upper: f64) -> Array3<bool>
 where
     U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps + ToPrimitive + FromPrimitive,
 {
-    let result = data.mapv(|x| x.to_f64().unwrap() >= threshold);
-    result
+    data.mapv(|x| x.to_f64().unwrap() >= lower && x.to_f64().unwrap() <= upper)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_approx_eq::assert_approx_eq;
     use ndarray::arr3;
+    use noisy_float::types::n64;
 
     #[test]
     fn threshold_apply_threshold() {
@@ -219,7 +275,25 @@ mod tests {
             [[false], [true], [false]],
         ]);
 
-        let result = apply_threshold(&data, 0.5);
+        let result = apply_threshold(&data, 0.5, f64::INFINITY);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn threshold_apply_threshold_range() {
+        let data = arr3(&[
+            [[0.2], [0.4], [0.0]],
+            [[0.7], [0.5], [0.8]],
+            [[0.1], [0.6], [0.0]],
+        ]);
+        let expected = arr3(&[
+            [[false], [true], [false]],
+            [[true], [true], [false]],
+            [[false], [true], [false]],
+        ]);
+
+        let result = apply_threshold(&data, 0.25, 0.75);
 
         assert_eq!(result, expected);
     }
