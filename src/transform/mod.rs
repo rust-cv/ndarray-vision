@@ -1,19 +1,66 @@
 use crate::core::{ColourModel, Image, ImageBase};
-use crate::transform::affine::translation;
 use ndarray::{array, prelude::*, s, Data};
 use ndarray_linalg::*;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
+use std::fmt::Display;
 
 pub mod affine;
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug, Hash)]
-pub enum Error {
-    InvalidTransformation,
-    NonInvertibleTransformation,
+pub enum TransformError {
+    InvalidTransform,
+    NonInvertibleTransform,
 }
 
-pub trait TransformExt
+impl std::error::Error for TransformError {}
+
+impl Display for TransformError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransformError::InvalidTransform => return write!(f, "invalid transform"),
+            TransformError::NonInvertibleTransform => {
+                return write!(
+                    f,
+                    "Non Invertible Transform, Forward transform not yet implemented "
+                )
+            }
+        }
+    }
+}
+
+pub trait Transform {
+    fn apply(&self, p: (f64, f64)) -> (f64, f64);
+    fn apply_inverse(&self, p: (f64, f64)) -> (f64, f64);
+    fn inverse_exists(&self) -> bool;
+}
+
+/// Composition of two transforms.  Specifically, derives transform2(transform1(image)).
+/// this is not equivalent to running the transforms separately, since the composition of the
+/// transforms occurs before sampling.  IE, running transforms separately incur a resample per
+/// transform, whereas composed Transforms only incur a single image resample.
+pub struct ComposedTransform<T: Transform> {
+    transform1: T,
+    transform2: T,
+}
+
+impl<T: Transform> Transform for ComposedTransform<T> {
+    fn apply(&self, p: (f64, f64)) -> (f64, f64) {
+        return self.transform2.apply(self.transform1.apply(p));
+    }
+
+    fn apply_inverse(&self, p: (f64, f64)) -> (f64, f64) {
+        return self
+            .transform1
+            .apply_inverse(self.transform2.apply_inverse(p));
+    }
+
+    fn inverse_exists(&self) -> bool {
+        return self.transform1.inverse_exists() && self.transform2.inverse_exists();
+    }
+}
+
+pub trait TransformExt<T: Transform>
 where
     Self: Sized,
 {
@@ -21,12 +68,13 @@ where
     type Output;
 
     /// Transforms an image given the transformation matrix and output size.
+    /// Uses the source index coordinate space
     /// Assume nearest-neighbour interpolation
     fn transform(
         &self,
-        transform: ArrayView2<f64>,
+        transform: &T,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self::Output, Error>;
+    ) -> Result<Self::Output, TransformError>;
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -37,33 +85,11 @@ struct Rect {
     h: usize,
 }
 
-fn source_coordinate(p: (f64, f64), trans: ArrayView2<f64>) -> (f64, f64) {
-    let p = match trans.shape()[0] {
-        2 => array![[p.0], [p.1]],
-        3 => array![[p.0], [p.1], [1.0]],
-        _ => unreachable!(),
-    };
-
-    let result = trans.dot(&p);
-    let x = result[[0, 0]];
-    let y = result[[1, 0]];
-    let w = match trans.shape()[0] {
-        2 => 1.0,
-        3 => result[[2, 0]],
-        _ => unreachable!(),
-    };
-    if (w - 1.0).abs() > std::f64::EPSILON {
-        (x / w, y / w)
-    } else {
-        (x, y)
-    }
-}
-
-fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
-    let tl = source_coordinate((0.0, 0.0), transform);
-    let tr = source_coordinate((0.0, dims.1), transform);
-    let br = source_coordinate(dims, transform);
-    let bl = source_coordinate((dims.0, 0.0), transform);
+fn bounding_box<T: Transform>(dims: (f64, f64), transform: T) -> Rect {
+    let tl = transform.apply((0.0, 0.0));
+    let tr = transform.apply((0.0, dims.1));
+    let br = transform.apply(dims);
+    let bl = transform.apply((dims.0, 0.0));
 
     let tl = (tl.0.round() as isize, tl.1.round() as isize);
     let tr = (tr.0.round() as isize, tr.1.round() as isize);
@@ -74,6 +100,7 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
     let rightmost = max(max(tl.0, tr.0), max(br.0, bl.0));
     let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
+
     Rect {
         x: leftmost,
         y: topmost,
@@ -82,75 +109,59 @@ fn bounding_box(dims: (f64, f64), transform: ArrayView2<f64>) -> Rect {
     }
 }
 
-impl<T, U> TransformExt for ArrayBase<U, Ix3>
+impl<T, U, V> TransformExt<V> for ArrayBase<U, Ix3>
 where
     T: Copy + Clone + Num + NumAssignOps,
     U: Data<Elem = T>,
+    V: Transform,
 {
     type Output = Array<T, Ix3>;
 
     fn transform(
         &self,
-        transform: ArrayView2<f64>,
+        transform: &V,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self::Output, Error> {
-        let shape = transform.shape();
-        if !(shape[0] == 3 || shape[0] == 2) {
-            Err(Error::InvalidTransformation)
-        } else {
-            let (mut result, new_transform) = match output_size {
-                Some((r, c)) => (
-                    Self::Output::zeros((r, c, self.shape()[2])),
-                    transform.into_owned(),
-                ),
-                None => {
-                    let dims = (self.shape()[0] as f64, self.shape()[1] as f64);
-                    let bounds = bounding_box(dims, transform.view());
-                    let new_trans = translation(bounds.x as f64, -bounds.y as f64).dot(&transform);
-                    (
-                        Self::Output::zeros((bounds.h, bounds.w, self.shape()[2])),
-                        new_trans,
-                    )
-                }
-            };
+    ) -> Result<Self::Output, TransformError> {
+        let mut output = match output_size {
+            Some((r, c)) => Self::Output::zeros((r, c, self.shape()[2])),
+            None => Self::Output::zeros(self.raw_dim()),
+        };
 
-            let transform = new_transform
-                .inv()
-                .map_err(|_| Error::NonInvertibleTransformation)?;
-            for r in 0..result.shape()[0] {
-                for c in 0..result.shape()[1] {
-                    let (x, y) = source_coordinate((c as f64, r as f64), transform.view());
-                    let x = x.round() as isize;
-                    let y = y.round() as isize;
-                    if x >= 0
-                        && y >= 0
-                        && (x as usize) < self.shape()[1]
-                        && (y as usize) < self.shape()[0]
-                    {
-                        result
-                            .slice_mut(s![r, c, ..])
-                            .assign(&self.slice(s![y, x, ..]));
-                    }
+        for r in 0..output.shape()[0] {
+            for c in 0..output.shape()[1] {
+                let (x, y) = transform.apply_inverse((c as f64, r as f64));
+                let x = x.round() as isize;
+                let y = y.round() as isize;
+                if x >= 0
+                    && y >= 0
+                    && (x as usize) < self.shape()[1]
+                    && (y as usize) < self.shape()[0]
+                {
+                    output
+                        .slice_mut(s![r, c, ..])
+                        .assign(&self.slice(s![y, x, ..]));
                 }
             }
-            Ok(result)
         }
+
+        Ok(output)
     }
 }
 
-impl<T, U, C> TransformExt for ImageBase<U, C>
+impl<T, U, C, V> TransformExt<V> for ImageBase<U, C>
 where
     U: Data<Elem = T>,
     T: Copy + Clone + Num + NumAssignOps,
     C: ColourModel,
+    V: Transform,
 {
     type Output = Image<T, C>;
 
     fn transform(
         &self,
-        transform: ArrayView2<f64>,
+        transform: &V,
         output_size: Option<(usize, usize)>,
-    ) -> Result<Self::Output, Error> {
+    ) -> Result<Self::Output, TransformError> {
         let data = self.data.transform(transform, output_size)?;
         let result = Self::Output::from_data(data).to_owned();
         Ok(result)
@@ -169,9 +180,9 @@ mod tests {
         let src_data = vec![2.0, 0.0, 1.0, 0.0, 5.0, 0.0, 1.0, 2.0, 3.0];
         let src = Image::<f64, Gray>::from_shape_data(3, 3, src_data);
 
-        let trans = affine::translation(2.0, 1.0);
+        let trans = affine::transform_from_2dmatrix(affine::translation(2.0, 1.0));
 
-        let res = src.transform(trans.view(), Some((3, 3)));
+        let res = src.transform(&trans, Some((3, 3)));
         assert!(res.is_ok());
         let res = res.unwrap();
 
@@ -184,18 +195,20 @@ mod tests {
     #[test]
     fn rotate() {
         let src = Image::<u8, Gray>::from_shape_data(5, 5, (0..25).collect());
-        let trans = affine::rotate_around_centre(PI, (2.0, 2.0));
-        let upside_down = src.transform(trans.view(), Some((5, 5))).unwrap();
+        let trans = affine::transform_from_2dmatrix(affine::rotate_around_centre(PI, (2.0, 2.0)));
+        let upside_down = src.transform(&trans, Some((5, 5))).unwrap();
 
-        let res = upside_down.transform(trans.view(), Some((5, 5))).unwrap();
+        let res = upside_down.transform(&trans, Some((5, 5))).unwrap();
 
         assert_eq!(src, res);
 
-        let trans_2 = affine::rotate_around_centre(PI / 2.0, (2.0, 2.0));
-        let trans_3 = affine::rotate_around_centre(-PI / 2.0, (2.0, 2.0));
+        let trans_2 =
+            affine::transform_from_2dmatrix(affine::rotate_around_centre(PI / 2.0, (2.0, 2.0)));
+        let trans_3 =
+            affine::transform_from_2dmatrix(affine::rotate_around_centre(-PI / 2.0, (2.0, 2.0)));
 
-        let upside_down_sideways = upside_down.transform(trans_2.view(), Some((5, 5))).unwrap();
-        let src_sideways = src.transform(trans_3.view(), Some((5, 5))).unwrap();
+        let upside_down_sideways = upside_down.transform(&trans_2, Some((5, 5))).unwrap();
+        let src_sideways = src.transform(&trans_3, Some((5, 5))).unwrap();
 
         assert_eq!(upside_down_sideways, src_sideways);
     }
@@ -203,10 +216,10 @@ mod tests {
     #[test]
     fn scale() {
         let src = Image::<u8, Gray>::from_shape_data(4, 4, (0..16).collect());
-        let trans = affine::scale(0.5, 2.0);
-        let res = src.transform(trans.view(), None).unwrap();
+        let trans = affine::transform_from_2dmatrix(affine::scale(0.5, 2.0));
+        let res = src.transform(&trans, None).unwrap();
 
-        assert_eq!(res.rows(), 8);
-        assert_eq!(res.cols(), 2);
+        assert_eq!(res.rows(), 4);
+        assert_eq!(res.cols(), 4);
     }
 }

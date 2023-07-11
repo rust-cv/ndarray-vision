@@ -34,11 +34,10 @@ fn main() {
     // Create transformation matrix
     let x = 0.5 * (cameraman.cols() as f64) - 0.5;
     let y = 0.5 * (cameraman.rows() as f64) - 0.5;
-    let trans = rotate_around_centre(FRAC_PI_4, (x, y)).dot(&scale(0.7, 0.7));
+    let trans =
+        transform_from_2dmatrix(rotate_around_centre(FRAC_PI_4, (x, y)).dot(&scale(0.7, 0.7)));
 
-    let transformed = cameraman
-        .transform(trans.view(), None)
-        .expect("Transform failed");
+    let transformed = cameraman.transform(&trans, None).expect("Transform failed");
 
     // save
     let path = Path::new("transformed_cameraman.png");
