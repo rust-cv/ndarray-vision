@@ -3,12 +3,12 @@ use ndarray_vision::core::*;
 use ndarray_vision::format::netpbm::*;
 use ndarray_vision::format::*;
 use ndarray_vision::processing::*;
-use std::env::current_exe;
+
 use std::path::{Path, PathBuf};
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let mut cameraman = root.clone().join("images/cameraman.ppm");
+    let cameraman = root.clone().join("images/cameraman.ppm");
     println!("{:?}", cameraman);
 
     let decoder = PpmDecoder::default();
@@ -21,7 +21,7 @@ fn main() {
 
     let mut image: Image<f64, _> = image.into_type();
 
-    let _ = image
+    image
         .conv2d_inplace(boxkern.view())
         .expect("Poorly sized kernel");
     // There's no u8: From<f64> so I've done this to hack things

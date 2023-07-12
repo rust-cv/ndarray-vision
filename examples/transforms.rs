@@ -42,7 +42,7 @@ fn main() {
     // save
     let path = Path::new("transformed_cameraman.png");
     let file = File::create(path).expect("Couldn't create output file");
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
     let mut encoder = png::Encoder::new(w, transformed.cols() as u32, transformed.rows() as u32);
     encoder.set_color(png::ColorType::RGB);

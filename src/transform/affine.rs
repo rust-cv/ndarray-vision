@@ -4,19 +4,19 @@ use ndarray_linalg::Inverse;
 
 /// converts a matrix into an equivalent `AffineTransform`
 pub fn transform_from_2dmatrix(in_array: Array2<f64>) -> AffineTransform {
-    let transform = match in_array.inv() {
+    
+    match in_array.inv() {
         Ok(inv) => AffineTransform {
-            matrix2d_transform: in_array.clone(),
+            matrix2d_transform: in_array,
             matrix2d_transform_inverse: inv,
             inverse_exists: true,
         },
-        Err(e) => AffineTransform {
-            matrix2d_transform: in_array.clone(),
+        Err(_e) => AffineTransform {
+            matrix2d_transform: in_array,
             matrix2d_transform_inverse: Array2::zeros((2, 2)),
             inverse_exists: false,
         },
-    };
-    return transform;
+    }
 }
 
 /// a linear transform of an image represented by either size 2x2
@@ -60,7 +60,7 @@ impl Transform for AffineTransform {
     }
 
     fn inverse_exists(&self) -> bool {
-        return self.inverse_exists;
+        self.inverse_exists
     }
 }
 

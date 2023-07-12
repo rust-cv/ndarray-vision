@@ -102,7 +102,7 @@ where
             let mut dir = rotations[[i as usize, j, 0]]
                 .to_degrees()
                 .to_f64()
-                .unwrap_or_else(|| 0.0);
+                .unwrap_or(0.0);
 
             let j = j as isize;
             if dir >= 180.0 {
@@ -267,9 +267,7 @@ where
             None => T::from_f64(0.7).unwrap(),
         };
         if t2 < t1 {
-            let temp = t1;
-            t1 = t2;
-            t2 = temp;
+            std::mem::swap(&mut t1, &mut t2);
         }
         CannyParameters { blur, t1, t2 }
     }

@@ -1,5 +1,5 @@
 use crate::core::{ColourModel, Image, ImageBase};
-use ndarray::{array, prelude::*, s, Data};
+use ndarray::{prelude::*, s, Data};
 use ndarray_linalg::*;
 use num_traits::{Num, NumAssignOps};
 use std::cmp::{max, min};
@@ -18,9 +18,9 @@ impl std::error::Error for TransformError {}
 impl Display for TransformError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransformError::InvalidTransform => return write!(f, "invalid transform"),
+            TransformError::InvalidTransform => write!(f, "invalid transform"),
             TransformError::NonInvertibleTransform => {
-                return write!(
+                write!(
                     f,
                     "Non Invertible Transform, Forward transform not yet implemented "
                 )
@@ -46,17 +46,17 @@ pub struct ComposedTransform<T: Transform> {
 
 impl<T: Transform> Transform for ComposedTransform<T> {
     fn apply(&self, p: (f64, f64)) -> (f64, f64) {
-        return self.transform2.apply(self.transform1.apply(p));
+        self.transform2.apply(self.transform1.apply(p))
     }
 
     fn apply_inverse(&self, p: (f64, f64)) -> (f64, f64) {
-        return self
+        self
             .transform1
-            .apply_inverse(self.transform2.apply_inverse(p));
+            .apply_inverse(self.transform2.apply_inverse(p))
     }
 
     fn inverse_exists(&self) -> bool {
-        return self.transform1.inverse_exists() && self.transform2.inverse_exists();
+        self.transform1.inverse_exists() && self.transform2.inverse_exists()
     }
 }
 

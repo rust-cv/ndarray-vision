@@ -90,8 +90,8 @@ fn rescale_pixel<T>(x: f64) -> T
 where
     T: FromPrimitive + Num + NumCast + PixelBound + Display,
 {
-    let tmax = T::max_pixel().to_f64().unwrap_or_else(|| 0.0f64);
-    let tmin = T::min_pixel().to_f64().unwrap_or_else(|| 0.0f64);
+    let tmax = T::max_pixel().to_f64().unwrap_or(0.0f64);
+    let tmin = T::min_pixel().to_f64().unwrap_or(0.0f64);
 
     let x = x * (tmax - tmin) + tmin;
 
@@ -159,17 +159,17 @@ where
     let x = c * (1.0f64 - ((h_deg / 60.0f64) % 2.0f64 - 1.0f64).abs());
     let m = v_norm - c;
 
-    let rgb = if 0.0f64 <= h_deg && h_deg < 60.0f64 {
+    let rgb = if (0.0f64..60.0f64).contains(&h_deg) {
         (c, x, 0.0f64)
-    } else if 60.0f64 <= h_deg && h_deg < 120.0f64 {
+    } else if (60.0f64..120.0f64).contains(&h_deg) {
         (x, c, 0.0f64)
-    } else if 120.0f64 <= h_deg && h_deg < 180.0f64 {
+    } else if (120.0f64..180.0f64).contains(&h_deg) {
         (0.0f64, c, x)
-    } else if 180.0f64 <= h_deg && h_deg < 240.0f64 {
+    } else if (180.0f64..240.0f64).contains(&h_deg) {
         (0.0f64, x, c)
-    } else if 240.0f64 <= h_deg && h_deg < 300.0f64 {
+    } else if (240.0f64..300.0f64).contains(&h_deg) {
         (x, 0.0f64, c)
-    } else if 300.0f64 <= h_deg && h_deg < 360.0f64 {
+    } else if (300.0f64..360.0f64).contains(&h_deg) {
         (c, 0.0f64, x)
     } else {
         (0.0f64, 0.0f64, 0.0f64)

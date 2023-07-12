@@ -147,8 +147,8 @@ where
             sum_intensity += (index as f64) * (*count).to_f64().unwrap();
         }
         for (index, count) in counts.indexed_iter() {
-            weight_b = weight_b + count.to_f64().unwrap();
-            sum_b = sum_b + (index as f64) * count.to_f64().unwrap();
+            weight_b += count.to_f64().unwrap();
+            sum_b += (index as f64) * count.to_f64().unwrap();
             let weight_f = total - weight_b;
             if (weight_b > 0.0) && (weight_f > 0.0) {
                 let mean_f = (sum_intensity - sum_b) / weight_f;
@@ -162,7 +162,7 @@ where
                 }
             }
         }
-        threshold = level as f64 / scale_factor;
+        threshold = level / scale_factor;
     }
     Ok(threshold)
 }

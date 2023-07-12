@@ -43,7 +43,7 @@ where
             let scaled = normalise_pixel_value(*x)
                 * (T2::max_pixel() - T2::min_pixel())
                     .to_f64()
-                    .unwrap_or_else(|| 0.0f64);
+                    .unwrap_or(0.0f64);
             T2::from_f64(scaled).unwrap_or_else(T2::zero) + T2::min_pixel()
         };
         let data = self.data.map(rescale);
@@ -204,8 +204,8 @@ where
     let numerator = (t + T::min_pixel()).to_f64();
     let denominator = (T::max_pixel() - T::min_pixel()).to_f64();
 
-    let numerator = numerator.unwrap_or_else(|| 0.0f64);
-    let denominator = denominator.unwrap_or_else(|| 1.0f64);
+    let numerator = numerator.unwrap_or(0.0f64);
+    let denominator = denominator.unwrap_or(1.0f64);
 
     numerator / denominator
 }
