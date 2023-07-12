@@ -37,9 +37,9 @@ where
         Zip::indexed(self.windows(region)).for_each(|(i, j, k), window| {
             let mut flat_window = Array::from_iter(window.iter()).mapv(|x| *x);
             if let Ok(v) = flat_window.quantile_mut(n64(0.5f64), &Linear {}) {
-                result
-                    .get_mut([i + r_offset, j + c_offset, k])
-                    .map(|r| *r = v);
+                if let Some(r) = result.get_mut([i + r_offset, j + c_offset, k]) {
+                    *r = v;
+                }
             }
         });
         result

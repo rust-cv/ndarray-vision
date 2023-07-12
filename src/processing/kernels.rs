@@ -75,14 +75,14 @@ where
         let res = match p {
             LaplaceType::Standard => {
                 let m_1 = -T::one();
-                let p_4 = T::from_u8(4).ok_or_else(|| Error::NumericError)?;
+                let p_4 = T::from_u8(4).ok_or(Error::NumericError)?;
                 let z = T::zero();
 
                 arr2(&[[z, m_1, z], [m_1, p_4, m_1], [z, m_1, z]])
             }
             LaplaceType::Diagonal => {
                 let m_1 = -T::one();
-                let p_8 = T::from_u8(8).ok_or_else(|| Error::NumericError)?;
+                let p_8 = T::from_u8(8).ok_or(Error::NumericError)?;
 
                 arr2(&[[m_1, m_1, m_1], [m_1, p_8, m_1], [m_1, m_1, m_1]])
             }
@@ -219,7 +219,7 @@ where
 
     /// Build a fixed size kernel with the given parameters
     fn build_with_params(p: Self::Params) -> Result<Array3<T>, Error> {
-        let two = T::from_i8(2).ok_or_else(|| Error::NumericError)?;
+        let two = T::from_i8(2).ok_or(Error::NumericError)?;
         // Gets the gradient along the horizontal axis
         #[rustfmt::skip]
         let horz_sobel = arr2(&[

@@ -100,7 +100,7 @@ impl PpmEncoder {
         U: Data<Elem = T>,
         T: Copy + Clone + Num + NumAssignOps + NumCast + PartialOrd + Display + PixelBound,
     {
-        let max_val = Self::get_max_value(image).unwrap_or_else(|| 255);
+        let max_val = Self::get_max_value(image).unwrap_or(255);
 
         let mut result = self
             .generate_header(image.rows(), image.cols(), max_val)

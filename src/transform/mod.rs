@@ -1,8 +1,6 @@
 use crate::core::{ColourModel, Image, ImageBase};
-use ndarray::{array, prelude::*, s, Data};
-use ndarray_linalg::*;
+use ndarray::{prelude::*, s, Data};
 use num_traits::{Num, NumAssignOps};
-use std::cmp::{max, min};
 use std::fmt::Display;
 
 pub mod affine;
@@ -18,9 +16,9 @@ impl std::error::Error for TransformError {}
 impl Display for TransformError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransformError::InvalidTransform => return write!(f, "invalid transform"),
+            TransformError::InvalidTransform => write!(f, "invalid transform"),
             TransformError::NonInvertibleTransform => {
-                return write!(
+                write!(
                     f,
                     "Non Invertible Transform, Forward transform not yet implemented "
                 )
@@ -46,17 +44,16 @@ pub struct ComposedTransform<T: Transform> {
 
 impl<T: Transform> Transform for ComposedTransform<T> {
     fn apply(&self, p: (f64, f64)) -> (f64, f64) {
-        return self.transform2.apply(self.transform1.apply(p));
+        self.transform2.apply(self.transform1.apply(p))
     }
 
     fn apply_inverse(&self, p: (f64, f64)) -> (f64, f64) {
-        return self
-            .transform1
-            .apply_inverse(self.transform2.apply_inverse(p));
+        self.transform1
+            .apply_inverse(self.transform2.apply_inverse(p))
     }
 
     fn inverse_exists(&self) -> bool {
-        return self.transform1.inverse_exists() && self.transform2.inverse_exists();
+        self.transform1.inverse_exists() && self.transform2.inverse_exists()
     }
 }
 
@@ -83,30 +80,6 @@ struct Rect {
     y: isize,
     w: usize,
     h: usize,
-}
-
-fn bounding_box<T: Transform>(dims: (f64, f64), transform: T) -> Rect {
-    let tl = transform.apply((0.0, 0.0));
-    let tr = transform.apply((0.0, dims.1));
-    let br = transform.apply(dims);
-    let bl = transform.apply((dims.0, 0.0));
-
-    let tl = (tl.0.round() as isize, tl.1.round() as isize);
-    let tr = (tr.0.round() as isize, tr.1.round() as isize);
-    let br = (br.0.round() as isize, br.1.round() as isize);
-    let bl = (bl.0.round() as isize, bl.1.round() as isize);
-
-    let leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
-    let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
-    let rightmost = max(max(tl.0, tr.0), max(br.0, bl.0));
-    let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
-
-    Rect {
-        x: leftmost,
-        y: topmost,
-        w: (rightmost - leftmost) as usize,
-        h: (bottommost - topmost) as usize,
-    }
 }
 
 impl<T, U, V> TransformExt<V> for ArrayBase<U, Ix3>

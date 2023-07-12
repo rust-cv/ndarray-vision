@@ -269,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn basic_conv() {
         let input_pixels = vec![
             1, 1, 1, 0, 0,
@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(rustfmt, rustfmt_skip)]
+    #[rustfmt::skip]
     fn basic_conv_inplace() {
         let input_pixels = vec![
             1, 1, 1, 0, 0,
