@@ -4,7 +4,6 @@ use ndarray_linalg::Inverse;
 
 /// converts a matrix into an equivalent `AffineTransform`
 pub fn transform_from_2dmatrix(in_array: Array2<f64>) -> AffineTransform {
-    
     match in_array.inv() {
         Ok(inv) => AffineTransform {
             matrix2d_transform: in_array,

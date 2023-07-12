@@ -197,6 +197,15 @@ where
     result
 }
 
+impl<T> Default for CannyBuilder<T>
+where
+    T: Copy + Clone + FromPrimitive + Real + Num,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> CannyBuilder<T>
 where
     T: Copy + Clone + FromPrimitive + Real + Num,

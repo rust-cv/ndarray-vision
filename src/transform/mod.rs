@@ -1,8 +1,6 @@
 use crate::core::{ColourModel, Image, ImageBase};
 use ndarray::{prelude::*, s, Data};
-use ndarray_linalg::*;
 use num_traits::{Num, NumAssignOps};
-use std::cmp::{max, min};
 use std::fmt::Display;
 
 pub mod affine;
@@ -50,8 +48,7 @@ impl<T: Transform> Transform for ComposedTransform<T> {
     }
 
     fn apply_inverse(&self, p: (f64, f64)) -> (f64, f64) {
-        self
-            .transform1
+        self.transform1
             .apply_inverse(self.transform2.apply_inverse(p))
     }
 
@@ -83,30 +80,6 @@ struct Rect {
     y: isize,
     w: usize,
     h: usize,
-}
-
-fn bounding_box<T: Transform>(dims: (f64, f64), transform: T) -> Rect {
-    let tl = transform.apply((0.0, 0.0));
-    let tr = transform.apply((0.0, dims.1));
-    let br = transform.apply(dims);
-    let bl = transform.apply((dims.0, 0.0));
-
-    let tl = (tl.0.round() as isize, tl.1.round() as isize);
-    let tr = (tr.0.round() as isize, tr.1.round() as isize);
-    let br = (br.0.round() as isize, br.1.round() as isize);
-    let bl = (bl.0.round() as isize, bl.1.round() as isize);
-
-    let leftmost = min(min(tl.0, tr.0), min(br.0, bl.0));
-    let topmost = min(min(tl.1, tr.1), min(br.1, bl.1));
-    let rightmost = max(max(tl.0, tr.0), max(br.0, bl.0));
-    let bottommost = max(max(tl.1, tr.1), max(br.1, bl.1));
-
-    Rect {
-        x: leftmost,
-        y: topmost,
-        w: (rightmost - leftmost) as usize,
-        h: (bottommost - topmost) as usize,
-    }
 }
 
 impl<T, U, V> TransformExt<V> for ArrayBase<U, Ix3>
