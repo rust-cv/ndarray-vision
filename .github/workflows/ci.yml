@@ -29,11 +29,11 @@ jobs:
           cargo check --no-default-features
       - name: test
         run: |
-          cargo test 
+          cargo test --features=intel-mkl
       - name: check formatting
         run: cargo fmt -- --check
       - name: code-coverage
         run: |
           cargo install cargo-tarpaulin --force --git https://github.com/xd009642/tarpaulin --branch develop
-          cargo tarpaulin --force-clean --coveralls ${{ secrets.COVERALLS_TOKEN }}
+          cargo tarpaulin --features=intel-mkl --force-clean --coveralls ${{ secrets.COVERALLS_TOKEN }}
         if: matrix.target == 'x86_64-unknown-linux-gnu' && matrix.version == 'nightly'
