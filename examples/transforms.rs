@@ -45,7 +45,7 @@ fn main() {
     let w = &mut BufWriter::new(file);
 
     let mut encoder = png::Encoder::new(w, transformed.cols() as u32, transformed.rows() as u32);
-    encoder.set_color(png::ColorType::RGB);
+    encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
 
     println!(
