@@ -1,6 +1,10 @@
 # Change Log
 
-## [0.5.0]
+## [0.5.1] 2023-09-04
+### Changed
+- Updated dependencies and attempt to fix doc.rs rendering
+
+## [0.5.0] 2023-07-23
 ### Added
 - The `ThresholdApplyExt` trait to apply user-defined threshold
 - The `threshold_apply` method to the `ArrayBase` and `Image` types
