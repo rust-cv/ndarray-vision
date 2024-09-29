@@ -29,6 +29,9 @@ noisy_float = { version = "0.2", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 
 [dev-dependencies]
+# Note: building with `cargo test` requires a linalg backend specified
+# CI uses `cargo test --features=intel-mkl`
+# See ndarray-linagl's README for more information
 ndarray = { version = "0.15", features = ["approx"] }
 ndarray-rand = "0.14.0"
 rand = "0.8"
@@ -36,5 +39,3 @@ assert_approx_eq = "1.1.0"
 approx = "0.4"
 noisy_float = "0.2"
 png = "0.17"
-# it is a dependency of intel-mkl-tool, we pin it to temporary solve
-# https://github.com/rust-math/intel-mkl-src/issues/68
